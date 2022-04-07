@@ -28,3 +28,14 @@ Description: Functions to combine data on voting blocs'
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
+Suggests: 
+    devtools (>= 2.4.3),
+    testthat (>= 3.1.3)
+Config/testthat/edition: 3
+RoxygenNote: 7.1.2
+Imports: 
+    collapse (>= 1.7.6),
+    dplyr (>= 1.0.6),
+    ggplot2 (>= 3.2.0),
+    rlang (>= 1.0.0),
+    tibble (>= 3.0.0)
