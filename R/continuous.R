@@ -3,26 +3,27 @@
 #' Define voting blocs along a \strong{continuous} variable and estimate their
 #' partisan vote contributions.
 #'
-#' @param data               default data.frame to use as the source for
+#' @param data           default data.frame to use as the source for
 #'   density, turnout, and vote choice data.
 #' @param data_density   data.frame of blocs' composition/density data. Must
-#'   include any columns named by \code{indep}, and \code{weight}.
+#'   include any columns named by \code{indep} and \code{weight}.
 #' @param data_turnout   data.frame of blocs' turnout data. Must include any
-#'   columns named by \code{dv_turnout}, \code{indep} and
-#'   \code{weight}.
+#'   columns named by \code{dv_turnout}, \code{indep} and \code{weight}.
 #' @param data_vote      data.frame of blocs' vote choice data. Must include any
-#'   columns named by \code{dv_vote}, \code{indep}, and
-#'   \code{weight}. \strong{If this data set includes non-voters, it must have a column
-#'   named \code{dv_turnout} coded identically.}
+#'   columns named by \code{dv_turnout}, \code{dv_voterep}, \code{dv_votedem},
+#'   \code{indep}, and \code{weight}.}
 #' @param indep      column names of the independent variable(s) defining
 #'   continuous voting blocs.
 #' @param dv_turnout     string, column name of the dependent variable flagging
-#'   voter turnout. That column must be coded \{0, 1}.
+#'   voter turnout. That column must be coded {0, 1}.
 #' @param dv_voterep     string, column name of the dependent variable flagging
-#'   Republican vote choice.  Must be coded {0, 1} indicating Republican vote choice.
+#'   Republican vote choice.  Must be coded {0, 1} indicating Republican vote
+#'   choice.
 #' @param dv_votedem     string, column name of the dependent variable flagging
-#'   Republican vote choice.  Must be coded {0, 1} indicating Democratic vote choice.
-#' @param weight     optional string naming the column of sample weights. Must be identical in all data sets.
+#'   Republican vote choice.  Must be coded {0, 1} indicating Democratic vote
+#'   choice.
+#' @param weight     optional string naming the column of sample weights. Must
+#'   be identical in all data sets.
 #' @param min_val    scalar, lower bound for density estimation. See
 #'   \link{estimate_density}.
 #' @param max_val    scalar, upper bound for density estimation. See
@@ -59,6 +60,7 @@ vb_continuous <-
         stopifnot(rlang::has_name(data_turnout, indep))
         stopifnot(rlang::has_name(data_turnout, weight))
 
+        stopifnot(rlang::has_name(data_vote, dv_turnout))
         stopifnot(rlang::has_name(data_vote, c(dv_voterep , dv_votedem)))
         stopifnot(rlang::has_name(data_vote, indep))
         stopifnot(rlang::has_name(data_vote, weight))
@@ -112,16 +114,51 @@ vb_continuous <-
 
             ### Estimate Pr(vote | turnout, X)
             ### SUBSET TO VOTERS ###
+            data_vote <- filter(data_vote, get(dv_turnout) == 1)
+
             # vote = Rep
             form_voterep <- stats::as.formula(sprintf("%s ~ %s", dv_voterep, indep_str))
-            gam_voterep  <- mgcv::gam(form_voterep,
-                                      data = data_vote[pull(data_vote, dv_turnout) == 1, ])
+            ### tryCatch suggests a lower s(k = basis dimension) in case
+            ### the degrees of freedom don't support the default k
+            gam_voterep <-
+                tryCatch(
+
+                    mgcv::gam(form_voterep, data = data_vote),
+
+                    error = function(e) {
+
+                        sprintf("s(%s, k = %s)",
+                                indep,
+                                round(nrow(na.omit(select(data_vote, all_of(c(dv_voterep, indep)))))/3)
+                        ) %>%
+
+                            paste(collapse = " + ") %>%
+                            sprintf("%s ~ %s", dv_turnout, .) %>%
+                            stats::as.formula() %>%
+                            mgcv::gam(data = data_vote)
+                    }
+                )
 
             # vote = Dem
             form_votedem <- stats::as.formula(sprintf("%s ~ %s", dv_votedem, indep_str))
-            gam_votedem  <- mgcv::gam(form_votedem,
-                                      data = data_vote[pull(data_vote, dv_turnout) == 1, ])
+            gam_votedem <-
+                tryCatch(
 
+                    mgcv::gam(form_votedem, data = data_vote),
+
+                    error = function(e) {
+
+                        sprintf("s(%s, k = %s)",
+                                indep,
+                                round(nrow(na.omit(select(data_vote, all_of(c(dv_votedem, indep)))))/3)
+                        ) %>%
+
+                            paste(collapse = " + ") %>%
+                            sprintf("%s ~ %s", dv_turnout, .) %>%
+                            stats::as.formula() %>%
+                            mgcv::gam(data = data_vote)
+                    }
+                )
             ### Predict
             # Predict turnout, vote choice on same X values as density estimation
             ert <- as.data.frame(dens_estim$x_seq)

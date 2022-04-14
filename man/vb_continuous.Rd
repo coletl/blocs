@@ -26,27 +26,27 @@ vb_continuous(
 density, turnout, and vote choice data.}
 
 \item{data_density}{data.frame of blocs' composition/density data. Must
-include any columns named by \code{indep}, and \code{weight}.}
+include any columns named by \code{indep} and \code{weight}.}
 
 \item{data_turnout}{data.frame of blocs' turnout data. Must include any
-columns named by \code{dv_turnout}, \code{indep} and
-\code{weight}.}
-
-\item{data_vote}{data.frame of blocs' vote choice data. Must include any
-columns named by \code{dv_vote}, \code{indep}, and
-\code{weight}. \strong{If this data set includes non-voters, it must have a column
-named \code{dv_turnout} coded identically.}}
+columns named by \code{dv_turnout}, \code{indep} and \code{weight}.}
 
 \item{indep}{column names of the independent variable(s) defining
 continuous voting blocs.}
 
+\item{dv_turnout}{string, column name of the dependent variable flagging
+voter turnout. That column must be coded {0, 1}.}
+
 \item{dv_voterep}{string, column name of the dependent variable flagging
-Republican vote choice.  Must be coded {0, 1} indicating Republican vote choice.}
+Republican vote choice.  Must be coded {0, 1} indicating Republican vote
+choice.}
 
 \item{dv_votedem}{string, column name of the dependent variable flagging
-Republican vote choice.  Must be coded {0, 1} indicating Democratic vote choice.}
+Republican vote choice.  Must be coded {0, 1} indicating Democratic vote
+choice.}
 
-\item{weight}{optional string naming the column of sample weights. Must be identical in all data sets.}
+\item{weight}{optional string naming the column of sample weights. Must
+be identical in all data sets.}
 
 \item{min_val}{scalar, lower bound for density estimation. See
 \link{estimate_density}.}

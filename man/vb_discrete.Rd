@@ -2,7 +2,7 @@
 % Please edit documentation in R/discrete.R
 \name{vb_discrete}
 \alias{vb_discrete}
-\title{Continuous voting bloc analysis}
+\title{Discrete voting bloc analysis}
 \usage{
 vb_discrete(
   data,
@@ -27,16 +27,14 @@ density, turnout, and vote choice data.}
 include any columns named by \code{indep} and \code{weight}.}
 
 \item{data_turnout}{data.frame of blocs' turnout data. Must include any
-columns named by \code{dv_turnout}, \code{indep}, and
+columns named by \code{dv_turnout}, \code{indep} and
 \code{weight}.}
-
-\item{data_vote}{data.frame of blocs' vote choice data. Must include any
-columns named by \code{dv_voterep}, \code{dv_votedem}, \code{indep} and
-\code{weight}. \strong{If this data set includes non-voters, it must have a column
-named \code{dv_turnout} coded identically.}}
 
 \item{indep}{string, column name of the independent variable defining
 discrete voting blocs.}
+
+\item{dv_turnout}{string, column name of the dependent variable flagging
+voter turnout. That column must be coded {0, 1}.}
 
 \item{dv_voterep}{string, column name of the dependent variable flagging
 Republican vote choice.  Must be coded {0, 1} indicating Republican vote choice.}

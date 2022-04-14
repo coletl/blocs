@@ -1,4 +1,4 @@
-#' Continuous voting bloc analysis
+#' Discrete voting bloc analysis
 #'
 #' Define voting blocs along a \strong{discrete} variable and estimate their partisan
 #' vote contributions.
@@ -8,16 +8,15 @@
 #' @param data_density   data.frame of blocs' composition/density data. Must
 #'   include any columns named by \code{indep} and \code{weight}.
 #' @param data_turnout   data.frame of blocs' turnout data. Must include any
-#'   columns named by \code{dv_turnout}, \code{indep}, and
+#'   columns named by \code{dv_turnout}, \code{indep} and
 #'   \code{weight}.
 #' @param data_vote      data.frame of blocs' vote choice data. Must include any
-#'   columns named by \code{dv_voterep}, \code{dv_votedem}, \code{indep} and
-#'   \code{weight}. \strong{If this data set includes non-voters, it must have a column
-#'   named \code{dv_turnout} coded identically.}
+#'   columns named by \code{dv_turnout}, \code{dv_voterep}, \code{dv_votedem},
+#'   \code{indep}, and \code{weight}.}
 #' @param indep      string, column name of the independent variable defining
 #'   discrete voting blocs.
 #' @param dv_turnout     string, column name of the dependent variable flagging
-#'   voter turnout. That column must be coded \{0, 1}.
+#'   voter turnout. That column must be coded {0, 1}.
 #' @param dv_voterep     string, column name of the dependent variable flagging
 #'   Republican vote choice.  Must be coded {0, 1} indicating Republican vote choice.
 #' @param dv_votedem     string, column name of the dependent variable flagging
@@ -58,6 +57,7 @@ vb_discrete <-
         stopifnot(rlang::has_name(data_turnout, indep))
         stopifnot(rlang::has_name(data_turnout, weight))
 
+        stopifnot(rlang::has_name(data_vote, dv_turnout))
         stopifnot(rlang::has_name(data_vote, c(dv_voterep , dv_votedem)))
         stopifnot(rlang::has_name(data_vote, indep))
         stopifnot(rlang::has_name(data_vote, weight))
