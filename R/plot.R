@@ -2,11 +2,11 @@
 #'
 #'
 #' @rdname plot_vbdiff
-#' @param vbdiff a data.frame of year-to-year differences in the format of the output from \link{vb_diff}.
+#' @param vbdiff a data.frame of year-to-year differences in the format of the output from \link{vb_difference}.
 #' @param x      string naming the column to plot on the x axis.
 #' @param y      string naming the column to plot on the y axis.
-#' @param ci_low  string naming the column to plot as the lower bound of the confidence interval.
-#' @param ci_high string naming the column to plot as the upper bound of the confidence interval.
+#' @param ymin   string naming the column to plot as the lower bound of the confidence interval.
+#' @param ymax   string naming the column to plot as the upper bound of the confidence interval.
 #'
 #' @import ggplot2
 #'

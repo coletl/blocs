@@ -50,7 +50,7 @@ vb_difference <- function(vbdf, diff_col, sort_col = "year"){
 
     # Remove invalid differences (last rows of each group)
     diff_cols <- grep("diff_", names(vbdiff), value = TRUE)
-    complete_ind <- which(complete.cases(select(vbdiff, all_of(diff_cols))))
+    complete_ind <- which(stats::complete.cases(select(vbdiff, all_of(diff_cols))))
 
     vbdiff <- vbdiff[complete_ind, ]
 
@@ -61,4 +61,3 @@ vb_difference <- function(vbdf, diff_col, sort_col = "year"){
 
     return(out)
 }
-

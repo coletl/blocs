@@ -25,7 +25,7 @@ new_vbdf <- function(x, bloc_var = character(),
 
 #' Validator for class vbdf
 #'
-#' @param x
+#' @param x object to check
 #'
 #' @import dplyr
 
@@ -63,8 +63,7 @@ check_vbdf <- function(x){
 #' Create a vbdf object holding bloc-level estimates of composition, turnout,
 #' and/or vote choice. This function is mostly for internal use, but you may
 #' want it to create a \code{vbdf} object from your custom voting bloc analysis.
-#' A valid \code{vbdf} object can be used in \link{vb_diff}, \link{plot_vbdf},
-#' and \link{vb_swap}.
+#' A valid \code{vbdf} object can be used in \link{vb_difference} and \link{plot_vbdf}
 #'
 #' @param data data.frame of voting-bloc results to convert to a \code{vbdf} object
 #' @param bloc_var string, the name of the variable that defines the voting blocs
@@ -91,3 +90,23 @@ vbdf <-
         return(vbdf)
     }
 
+# vbdf methods ----
+
+# #' @export group_by.vbdf
+# #' @export
+#
+# group_by.vbdf <- function(.data, ..., .add = FALSE,
+#                           .drop = group_by_drop_default(.data)){
+#
+#     bloc_var <- get_bloc_var(.data)
+#     var_type <- get_var_type(.data)
+#
+#     vbdf_grp <- dplyr:::group_by.data.frame(.data, ..., .add = .add, .drop = .drop)
+#
+#
+#     out <- vbdf(vbdf_grp,
+#                 bloc_var = bloc_var, var_type = var_type)
+#
+#     return(out)
+# }
+#

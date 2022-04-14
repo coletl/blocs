@@ -132,7 +132,7 @@ vb_uncertainty.vbdf <-
 
 #' Compute uncertainty for a vbdiff object
 #'
-#' @param vbdiff    a \code{vbdiff} object, the result of \code{vb_diff}.
+#' @param vbdiff    a \code{vbdiff} object, the result of \code{vb_difference()}.
 #' @param type a string naming the type of independent variable summary. Use
 #'   \code{"binned"} when working with binned output of \code{vb_continuous()}.
 #' @param estimates character vector naming columns for which to calculate

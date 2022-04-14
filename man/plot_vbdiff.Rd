@@ -24,15 +24,15 @@ plot_vbdiff(
 )
 }
 \arguments{
-\item{vbdiff}{a data.frame of year-to-year differences in the format of the output from \link{vb_diff}.}
+\item{vbdiff}{a data.frame of year-to-year differences in the format of the output from \link{vb_difference}.}
 
 \item{x}{string naming the column to plot on the x axis.}
 
 \item{y}{string naming the column to plot on the y axis.}
 
-\item{ci_low}{string naming the column to plot as the lower bound of the confidence interval.}
+\item{ymin}{string naming the column to plot as the lower bound of the confidence interval.}
 
-\item{ci_high}{string naming the column to plot as the upper bound of the confidence interval.}
+\item{ymax}{string naming the column to plot as the upper bound of the confidence interval.}
 }
 \description{
 Plot voting blocs' year-to-year difference

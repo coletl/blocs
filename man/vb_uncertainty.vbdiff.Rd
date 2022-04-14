@@ -16,7 +16,7 @@
 )
 }
 \arguments{
-\item{vbdiff}{a \code{vbdiff} object, the result of \code{vb_diff}.}
+\item{vbdiff}{a \code{vbdiff} object, the result of \code{vb_difference()}.}
 
 \item{type}{a string naming the type of independent variable summary. Use
 \code{"binned"} when working with binned output of \code{vb_continuous()}.}

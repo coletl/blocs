@@ -7,7 +7,7 @@
 check_vbdf(x)
 }
 \arguments{
-\item{x}{}
+\item{x}{object to check}
 }
 \description{
 Validator for class vbdf

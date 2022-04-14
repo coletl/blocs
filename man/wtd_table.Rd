@@ -21,6 +21,8 @@ wtd_table(
 \item{prop}{logical, whether to return proportions or counts. Default returns counts.}
 
 \item{return_tibble}{logical, whether to return a tibble or named vector.}
+
+\item{normwt}{logical, whether to normalize weights such that they sum to 1.}
 }
 \description{
 Weighted frequency table or proportions

@@ -209,6 +209,7 @@ vb_discrete <-
 #' @param weight  optional vector of weights. The default uses uniform weights of 1.
 #' @param prop    logical, whether to return proportions or counts. Default returns counts.
 #' @param return_tibble    logical, whether to return a tibble or named vector.
+#' @param normwt           logical, whether to normalize weights such that they sum to 1.
 #'
 #' @export
 
@@ -232,19 +233,19 @@ wtd_table <-
         if(normwt) weight <- weight * nrow(tabdf)/sum(weight)
 
         # Use weights if present, otherwise all 1
-        weight_vec <- if(is.null(weight)) rep.int(1L, length(tabfac)) else weight
+        weight_vec <- if(is.null(weight)) rep.int(1L, nrow(tabdf)) else weight
 
         if(na.rm){
             # Remove values where any ... is NA
-            tabdf <- na.omit(tabdf)
+            tabdf <- stats::na.omit(tabdf)
             # Remove corresponding weights
             na_ind <- unique(attr(tabdf, "na.action"))
             weight_vec <- weight_vec[- na_ind]
         }
 
         # Sum weights within group
-        grps <- GRP(tabdf)
-        out  <- fsum(weight_vec, grps)
+        grps <- collapse::GRP(tabdf)
+        out  <- collapse::fsum(weight_vec, grps)
 
         if(prop) out <- out / sum(out)
 
