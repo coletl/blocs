@@ -1,5 +1,18 @@
 ################ Uncertainty ##############
 
+
+boot_mat <- function(nrow, iters, weight = NULL){
+    itermat <-
+        replicate(iters, sample.int(nrow, replace = TRUE, prob = weight))
+
+    out <- cbind(1:nrow, itermat)
+    colnames(out) <- c("resample-0",
+                       sprintf("resample-%s", 1:iters))
+
+    return(out)
+}
+
+
 #' Compute uncertainty for voting blocs analysis
 #'
 #' @param object a \code{vbdf} or \code{vbdiff} object.
@@ -108,7 +121,7 @@ vb_uncertainty.vbdf <-
                 )
         }
 
-        # Use custom class to attributes from dplyr verbs
+        # Use custom class to protect attributes from dplyr verbs
         out <- new_vbdf(uncertainty_summary,
                         bloc_var = bloc_var, var_type = get_var_type(vbdf))
 
@@ -124,6 +137,8 @@ vb_uncertainty.vbdf <-
 #'   \code{"binned"} when working with binned output of \code{vb_continuous()}.
 #' @param estimates character vector naming columns for which to calculate
 #'   uncertainty estimates.
+#' @param bin_col character vector naming columns that contain the bins. Used
+#'   only if  \code{type} is \code{"binned"}.
 #' @param na.rm logical indicating whether to remove \code{NA} values in
 #'   \code{estimates}.
 #' @param funcs character vector of summary functions to apply to
@@ -135,8 +150,6 @@ vb_uncertainty.vbdf <-
 #' @param high_ci numeric. If you include the string \code{"high"} in
 #'   \code{funcs}, then use this argument to control the upper bound of the
 #'   confidence interval.
-#' @param bin_col character vector naming columns that contain the bins. Used
-#'   only if  \code{type} is \code{"binned"}.
 #' @return a \code{vbdiff} object with additional columns for each combination
 #'   of \code{estimates} and \code{funcs}.
 #'
@@ -146,10 +159,9 @@ vb_uncertainty.vbdf <-
 
 vb_uncertainty.vbdiff <-
     function(vbdiff, type = c("continuous", "binned", "discrete"),
-             estimates, na.rm = FALSE,
+             estimates, bin_col, na.rm = FALSE,
              funcs = c("original", "mean", "median", "low", "high"),
-             low_ci = 0.025, high_ci = 0.975,
-             bin_col){
+             low_ci = 0.025, high_ci = 0.975){
 
         require(dplyr)
 
@@ -159,7 +171,7 @@ vb_uncertainty.vbdiff <-
 
         funcs <-
             list(
-                original = ~ .x[resample == "resample-0"],
+                original = ~ as.numeric(.x[resample == "resample-0"]),
                 mean     = ~ mean(.x, na.rm = na.rm),
                 median   = ~ median(.x, na.rm = na.rm),
                 low      = ~ quantile(.x, prob  = low_ci, na.rm = na.rm),
@@ -220,10 +232,11 @@ vb_uncertainty.vbdiff <-
                 )
         }
 
-        # Use custom class to attributes from dplyr verbs
-        out <- new_vbdiff(uncertainty_summary,
-                          bloc_var = bloc_var,
-                          diff_col  = attr(vbdiff, "diff_col"))
+        # Use custom class to protect attributes from dplyr verbs
+        out <-
+            new_vbdiff(x = uncertainty_summary, bloc_var = bloc_var,
+                       var_type = get_var_type(vbdiff),
+                       diff_col  = attr(vbdiff, "diff_col"))
 
         return(out)
 

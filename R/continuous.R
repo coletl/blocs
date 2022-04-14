@@ -1,17 +1,28 @@
 #' Continuous voting bloc analysis
 #'
-#' Define voting blocs along a \strong{continuous} variable and estimate their partisan
-#' vote contributions.
+#' Define voting blocs along a \strong{continuous} variable and estimate their
+#' partisan vote contributions.
 #'
-#' @param data       data.frame
-#' @param dv         string, column name of the dependent variable for analysis.
-#'   Must be coded {-1, 0, 1} for Democrat, no vote/third party, and Republican
-#'   vote.
-#' @param indep      string, column name of the independent variable defining
+#' @param data               default data.frame to use as the source for
+#'   density, turnout, and vote choice data.
+#' @param data_density   data.frame of blocs' composition/density data. Must
+#'   include any columns named by \code{indep}, and \code{weight}.
+#' @param data_turnout   data.frame of blocs' turnout data. Must include any
+#'   columns named by \code{dv_turnout}, \code{indep} and
+#'   \code{weight}.
+#' @param data_vote      data.frame of blocs' vote choice data. Must include any
+#'   columns named by \code{dv_vote}, \code{indep}, and
+#'   \code{weight}. \strong{If this data set includes non-voters, it must have a column
+#'   named \code{dv_turnout} coded identically.}
+#' @param indep      column names of the independent variable(s) defining
 #'   continuous voting blocs.
-#' @param cov        character vector,  column names of any covariates for the
-#'   GAM model. These are not included in density estimation.
-#' @param weight     string, column name of the sample weights
+#' @param dv_turnout     string, column name of the dependent variable flagging
+#'   voter turnout. That column must be coded \{0, 1}.
+#' @param dv_voterep     string, column name of the dependent variable flagging
+#'   Republican vote choice.  Must be coded {0, 1} indicating Republican vote choice.
+#' @param dv_votedem     string, column name of the dependent variable flagging
+#'   Republican vote choice.  Must be coded {0, 1} indicating Democratic vote choice.
+#' @param weight     optional string naming the column of sample weights. Must be identical in all data sets.
 #' @param min_val    scalar, lower bound for density estimation. See
 #'   \link{estimate_density}.
 #' @param max_val    scalar, upper bound for density estimation. See
@@ -30,110 +41,144 @@
 #' @export
 
 vb_continuous <-
-    function(data, dv, indep, cov = NULL,
-             # GAM not weighted!
-             weight = NULL,
-             min_val = NULL, max_val = NULL, n_points = 100,
+    function(data,
+             data_density = data, data_turnout = data, data_vote = data,
+             indep, dv_turnout, dv_voterep, dv_votedem,
+             weight = NULL, min_val = NULL, max_val = NULL, n_points = 100,
              boot_iters = FALSE, verbose = FALSE){
 
         require(dplyr)
 
-        stopifnot(rlang::has_name(data, dv))
-        stopifnot(rlang::has_name(data, indep))
-        stopifnot(rlang::has_name(data, weight))
+        if(is_grouped_df(data_density))
+            stop("Density estimation does not permit grouped data frames. Please use split-apply-combine.")
 
-        if(!is.null(cov)){
-            stopifnot(rlang::has_name(data, cov))
-            if(
-                ! all(sapply(select(data, all_of(cov)), is.numeric))
-            ) stop("Only continuous variables may define voting blocs in vb_continuous().\nPlease split your data by cov and re-scale your estimates by the density of each group.")
-        }
+        stopifnot(rlang::has_name(data_density, indep))
+        stopifnot(rlang::has_name(data_density, weight))
+
+        stopifnot(rlang::has_name(data_turnout, dv_turnout))
+        stopifnot(rlang::has_name(data_turnout, indep))
+        stopifnot(rlang::has_name(data_turnout, weight))
+
+        stopifnot(rlang::has_name(data_vote, c(dv_voterep , dv_votedem)))
+        stopifnot(rlang::has_name(data_vote, indep))
+        stopifnot(rlang::has_name(data_vote, weight))
 
         # No missing values allowed in kde
-        if(
-            anyNA(
-                dplyr::select(data, all_of(c(group_vars(data), indep, cov)))
-            )
-        ){
-            warning("Dropping rows with NA values in indep or cov")
-            data <- stats::na.omit(select(data, all_of(c(group_vars(data), dv, indep, cov, weight))))
+        data_density <- stats::na.omit(select(data_density, all_of(c(indep, weight))))
+
+        if(is.null(min_val)) min_val <- mapply(min, select(ungroup(data_density), all_of(c(indep))))
+        if(is.null(max_val)) max_val <- mapply(max, select(ungroup(data_density), all_of(c(indep))))
+
+        # Start with NULL weights, but grab the col if present
+        weight_density <- rep(1L, nrow(data_density))
+        weight_turnout <- rep(1L, nrow(data_turnout))
+        weight_vote    <- rep(1L, nrow(data_vote))
+
+        if(!is.null(weight)) {
+            if(rlang::has_name(data_density, weight))
+                weight_density <- pull(data_density, weight)
+
+            if(rlang::has_name(data_turnout, weight))
+                weight_turnout <- pull(data_turnout, weight)
+
+            if(rlang::has_name(data_vote, weight))
+                weight_vote    <- pull(data_vote, weight)
         }
 
-        # Use weights if supplied
-        if(is.null(weight)) weight_vec <- 1L
-        else weight_vec <- data[[weight]]
-
-        if(is.null(min_val)) min_val <- mapply(min, select(data, all_of(c(indep, cov))))
-        if(is.null(max_val)) max_val <- mapply(max, select(data, all_of(c(indep, cov))))
-
-        # Fit GAM
-        cov_str <-
-            ifelse(is.null(cov), "",
-                   paste(sprintf(" + s(%s)", cov), collapse = ""))
-
-        form <- stats::as.formula(sprintf("%s ~ s(%s)%s", dv, indep, cov_str))
-
-        # UNWEIGHTED!
-        # See https://stackoverflow.com/questions/56313837/how-to-use-sample-weights-in-gam-mgcv-on-survey-data-for-logit-regression
-        mod_gam <- mgcv::gam(form, data = data)
-        # Could try splines package
-
         if(boot_iters == 0){
+
+            ### Estimate Pr(X)
             dens_estim <-
-                dplyr::select(data, all_of(c(indep, cov))) %>%
+                dplyr::select(ungroup(data_density), all_of(c(indep))) %>%
                 as.matrix() %>%
                 estimate_density(x = .,
                                  min = min_val,
                                  max = max_val,
-                                 w = weight_vec,
+                                 w = weight_density,
                                  n_points = n_points
                                  )
 
-            # Predict votes on same indep values as density estimation
+            ### Estimate Pr(turnout | X)
+            indep_str <-
+                sprintf("s(%s)", indep) %>%
+                paste(collapse = " + ")
+
+            form_turnout <- stats::as.formula(sprintf("%s ~ %s", dv_turnout, indep_str))
+
+            # UNWEIGHTED!
+            # See https://stackoverflow.com/questions/56313837/how-to-use-sample-weights-in-gam-mgcv-on-survey-data-for-logit-regression
+            gam_turnout <- mgcv::gam(form_turnout, data = data_turnout)
+            # Could try splines package
+
+            ### Estimate Pr(vote | turnout, X)
+            ### SUBSET TO VOTERS ###
+            # vote = Rep
+            form_voterep <- stats::as.formula(sprintf("%s ~ %s", dv_voterep, indep_str))
+            gam_voterep  <- mgcv::gam(form_voterep,
+                                      data = data_vote[pull(data_vote, dv_turnout) == 1, ])
+
+            # vote = Dem
+            form_votedem <- stats::as.formula(sprintf("%s ~ %s", dv_votedem, indep_str))
+            gam_votedem  <- mgcv::gam(form_votedem,
+                                      data = data_vote[pull(data_vote, dv_turnout) == 1, ])
+
+            ### Predict
+            # Predict turnout, vote choice on same X values as density estimation
             ert <- as.data.frame(dens_estim$x_seq)
-            names(ert) <- c(indep, cov)
+            names(ert) <- indep
 
-            pred_vote <- stats::predict(mod_gam, newdata = ert)
+            pred_turnout <- stats::predict(gam_turnout, newdata = ert)
+            pred_voterep <- stats::predict(gam_voterep, newdata = ert)
+            pred_votedem <- stats::predict(gam_votedem, newdata = ert)
 
-            # Pr(Rep | x)
-            cond_rep <- pred_vote
+            results <-
+                data.frame(
+                    as.data.frame(dens_estim$x_seq),
+                    pr_turnout = pred_turnout,
+                    pr_voterep  = pred_voterep,
+                    pr_votedem  = pred_votedem
+                ) %>%
+                mutate(
+                    prob    = dens_estim$density,
+                    net_rep = (pr_voterep - pr_votedem) * pr_turnout * prob
+                    )
 
-            # Net Rep votes at n_points levels of indep
-            net_rep <- cond_rep * dens_estim$density
-
-            results <- data.frame(net_rep, cond_rep,
-                                  prob = dens_estim$density,
-                                  ert)
-
-            out <- vbdf(results, bloc_var = c(indep, cov),
+            out <- vbdf(results, bloc_var = indep,
                         var_type = "continuous")
         } else {
 
-            # Create matrix of rows for each iteration
-            # Accept a column name (string) or vector of weights
-            itermat <-
-                replicate(boot_iters,
-                          sample.int(nrow(data), replace = TRUE,
-                                     prob = weight_vec)
-                )
+            # Create matrix of data-row indices for each iteration
+            itermat_density <-
+                boot_mat(nrow(data_density), iters = boot_iters,
+                         weight = weight_density)
 
-            # Add the original sample to the front
-            itermat <- cbind(1:nrow(data), itermat)
-            colnames(itermat) <- c("resample-0",
-                                   sprintf("resample-%s", 1:boot_iters))
+            itermat_turnout <-
+                boot_mat(nrow(data_turnout), iters = boot_iters,
+                         weight = weight_turnout)
 
+            itermat_vote <-
+                boot_mat(nrow(data_vote), iters = boot_iters,
+                         weight = weight_vote)
 
             # Run bootstrap
             boot_results <- list()
 
-            for(itnm in colnames(itermat)){
-                boot_data <- data[itermat[ , itnm], ]
+            for(itnm in colnames(itermat_density)){
+                boot_density <- data_density[itermat_density[ , itnm], ]
+                boot_turnout <- data_turnout[itermat_turnout[ , itnm], ]
+                boot_vote    <- data_vote[itermat_vote[ , itnm], ]
 
                 boot_out <-
-                    vb_continuous(data = boot_data,
-                                  dv = dv, indep = indep, cov = cov,
-                                  weight = weight, min_val = min_val, max_val = max_val,
-                                  boot_iters = FALSE)
+                    vb_continuous(data_density = boot_density,
+                                  data_turnout = boot_turnout,
+                                  data_vote    = boot_vote,
+
+                                  indep = indep, dv_turnout = dv_turnout,
+                                  dv_voterep = dv_voterep, dv_votedem = dv_votedem,
+                                  min_val = min_val, max_val = max_val,
+                                  # Weighted in resampling
+                                  weight = NULL, boot_iters = FALSE
+                                  )
 
                 boot_results[[itnm]] <- boot_out
 
@@ -142,7 +187,7 @@ vb_continuous <-
             }
 
             # Organize output
-            results <- vb_rbind(boot_results, .id = "resample")
+            results <- bind_rows(boot_results, .id = "resample")
 
             out <-
                 vbdf(results,
@@ -178,8 +223,47 @@ estimate_density <- function(x, min, max, n_points = 100, w, ...){
     stage <- ks::kde(x, eval.points = pred_seq, w = w, ...)
 
     probs <- stage$estimate / sum(stage$estimate)
+    colnames(stage$eval.points) <- stage$names
+
     out <- list(density = probs, x_seq = stage$eval.points)
 
     return(out)
+}
+
+
+#' Weighted quantiles
+#'
+#' @param x      numeric vector
+#' @param probs  numeric vector of probabilities
+#' @param weight numeric vector of non-negative weights
+#' @param na.rm  logical whether to remove missing values
+#' @param ...    further arguments passed to \link[collapse]{fnth}
+#'
+#' @export
+#'
+#' This function calls \link[collapse]{fnth} repeatedly over a vector of
+#' probabilities to produce output like \link[stats]{quantile}.
+#'
+#' TEST AGAINST QUANTILE AND WTD.QUANTILE
+
+wtd_quantile <- function(x, probs = seq(0, 1, 0.25), weight, na.rm = FALSE, ...){
+
+
+    probs_tags <- paste0(probs * 100, "%")
+
+    # collapse::fnth doesn't allow 0 or 1 probabilities
+    if(0 %in% probs) probs[probs == 0] <- .Machine$double.xmin
+    if(1 %in% probs) probs[probs == 1] <- 1 - 1e-7
+
+
+    out <-
+        vapply(X = probs, FUN.VALUE = double(1),
+               FUN =
+                   function(p) collapse::fnth(x, w = weight, n = p,
+                                              na.rm = na.rm, ...))
+    names(out) <- probs_tags
+
+    return(out)
+
 }
 

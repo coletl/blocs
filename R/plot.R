@@ -14,28 +14,34 @@
 #' @export
 #'
 plot_vbdiff <-
-    function(vbdiff, x = get_bloc_var(vbdiff), y, ci_low = NULL, ci_high = NULL){
+    function(vbdiff, x = get_bloc_var(vbdiff), y, ymin, ymax,
+             discrete = length(unique(vbdiff[[x]])) < 20
+             ){
 
     require(ggplot2)
 
+    ci <- !missing(ymin) & !missing(ymax)
+
     if(length(x) > 1) stop("Choose one independent variable to plot.")
 
-    ggplot(vbdiff) +
+    out <-
+        ggplot(vbdiff) +
         aes(x = .data[[x]], y = .data[[y]]) +
-        geom_line() +
-        {
-            if(!is.null(ci_low) && !is.null(ci_high))
-                geom_ribbon(
-                    aes(ymin = .data[[ci_low]], ymax = .data[[ci_high]]),
-                    alpha = 0.3
-                )
-        } +
         geom_hline(yintercept = 0) +
-        {
-            if( length(unique(vbdiff[["comp"]])) > 1 )
-                facet_wrap("comp")
-        } +
         theme_bw()
+
+    out <- if(discrete) out + geom_point() else out + geom_line()
+
+    if(ci) {
+        out <- out + aes(ymin = .data[[ymin]], ymax = .data[[ymax]])
+        if(discrete) out <- out + geom_pointrange()
+        else         out <- out + geom_ribbon(alpha = 0.3)
+    }
+
+    if(length(unique(vbdiff[["comp"]])) > 1)
+        out <- out + facet_wrap("comp")
+
+    return(out)
 }
 
 #' @rdname plot_vbdiff

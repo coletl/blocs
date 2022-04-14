@@ -3,14 +3,26 @@
 #' Define voting blocs along a \strong{discrete} variable and estimate their partisan
 #' vote contributions.
 #'
-#' @param data       data.frame.
-#' @param dv         string, column name of the dependent variable for analysis.
-#'   Must be coded {-1, 0, 1} for Democrat, no vote/third party, and Republican
-#'   vote.
+#' @param data               default data.frame to use as the source for
+#'   density, turnout, and vote choice data.
+#' @param data_density   data.frame of blocs' composition/density data. Must
+#'   include any columns named by \code{indep} and \code{weight}.
+#' @param data_turnout   data.frame of blocs' turnout data. Must include any
+#'   columns named by \code{dv_turnout}, \code{indep}, and
+#'   \code{weight}.
+#' @param data_vote      data.frame of blocs' vote choice data. Must include any
+#'   columns named by \code{dv_voterep}, \code{dv_votedem}, \code{indep} and
+#'   \code{weight}. \strong{If this data set includes non-voters, it must have a column
+#'   named \code{dv_turnout} coded identically.}
 #' @param indep      string, column name of the independent variable defining
-#'   continuous voting blocs.
-#' @param cov        character vector,  column names of any covariates.
-#' @param weight     string, column name of the sample weights.
+#'   discrete voting blocs.
+#' @param dv_turnout     string, column name of the dependent variable flagging
+#'   voter turnout. That column must be coded \{0, 1}.
+#' @param dv_voterep     string, column name of the dependent variable flagging
+#'   Republican vote choice.  Must be coded {0, 1} indicating Republican vote choice.
+#' @param dv_votedem     string, column name of the dependent variable flagging
+#'   Republican vote choice.  Must be coded {0, 1} indicating Democratic vote choice.
+#' @param weight     optional string naming the column of sample weights.
 #' @param boot_iters integer, number of bootstrap iterations for uncertainty
 #'   estimation. The default `NULL` is equivalent to 0 and does not estimate
 #'   uncertainty.
@@ -24,88 +36,153 @@
 
 
 vb_discrete <-
-    function(data, dv, indep, cov = NULL,
+    function(data,
+             data_density = data, data_turnout = data, data_vote = data,
+             indep, dv_turnout, dv_voterep, dv_votedem,
              weight = NULL, boot_iters = FALSE,
              verbose = FALSE, check_discrete = TRUE){
 
-        # Grab columns with purrr::pluck since dplyr::pull(NULL) errors out
         require(dplyr)
 
-        stopifnot(rlang::has_name(data, dv))
-        stopifnot(rlang::has_name(data, indep))
+        if(is_grouped_df(data_density))
+            stop("Density estimation does not permit grouped data frames. Please use split-apply-combine.")
 
-        stopifnot(rlang::has_name(data, weight))
-
-        # To return NULL instead of error in
-        if(dplyr::n_distinct(purrr::pluck(data, indep)) > 25 && check_discrete)
+        if( check_discrete & dplyr::n_distinct(dplyr::select(ungroup(data_density), all_of(indep))) > 50)
             stop("More than 25 unique values detected in indep. If you are sure you don't want vb_continuous(), set check_discrete = FALSE.")
-        if(!is.null(cov))
-            if(dplyr::n_distinct(purrr::pluck(data, cov))   > 25 && check_discrete)
-                stop("More than 25 unique values detected in cov. If you are sure you don't want vb_continuous(), set check_discrete = FALSE.")
 
-        if(
-            anyNA(
-                dplyr::select(data, all_of(c(group_vars(data), indep, cov)))
-            )
-        ){
-            warning("Dropping rows with NA values in indep or cov")
-            data <- stats::na.omit(select(data, all_of(c(group_vars(data), dv, indep, cov, weight))))
+
+        stopifnot(rlang::has_name(data_density, indep))
+        stopifnot(rlang::has_name(data_density, weight))
+
+        stopifnot(rlang::has_name(data_turnout, dv_turnout))
+        stopifnot(rlang::has_name(data_turnout, indep))
+        stopifnot(rlang::has_name(data_turnout, weight))
+
+        stopifnot(rlang::has_name(data_vote, c(dv_voterep , dv_votedem)))
+        stopifnot(rlang::has_name(data_vote, indep))
+        stopifnot(rlang::has_name(data_vote, weight))
+
+        # Remove missing values like vb_continuous()
+        data_density <- stats::na.omit(select(data_density, all_of(c(group_vars(data_density), indep, weight))))
+
+        # Start with NULL weights, but grab the col if present
+        weight_density <- rep(1L, nrow(data_density))
+        weight_turnout <- rep(1L, nrow(data_turnout))
+        weight_vote    <- rep(1L, nrow(data_vote))
+
+        if(!is.null(weight)) {
+            if(rlang::has_name(data_density, weight))
+                weight_density <- pull(data_density, weight)
+
+            if(rlang::has_name(data_turnout, weight))
+                weight_turnout <- pull(data_turnout, weight)
+
+            if(rlang::has_name(data_vote, weight))
+                weight_vote    <- pull(data_vote, weight)
         }
 
-        if(is.null(weight)) weight_vec <- 1L
-        else weight_vec <- data[[weight]]
 
-        grp_tbl <-
-            grp_wtd_table(data, grp_vars = c(indep, cov),
-                          weight = weight_vec)
+        # Force independent variables to be discrete
+        data_density <-
+            data_density %>%
+            mutate(across(all_of(indep), ~ as.factor(.x)))
+
+        data_turnout <-
+            data_turnout %>%
+            mutate(across(all_of(indep), ~ as.factor(.x)))
+
+        data_vote <-
+            data_vote %>%
+            mutate(across(all_of(indep), ~ as.factor(.x)))
+
 
 
         if(boot_iters == 0){
 
-            cov_str <- ifelse(is.null(cov),
-                              "",
-                              sprintf(" + factor(%s)", cov))
+            # Estimate Pr(X) ----
+            grp_tbl <-
+                wtd_table(select(ungroup(data_density), all_of(indep)),
+                          weight = weight_density,
+                          prop = TRUE, return_tibble = TRUE)
+            names(grp_tbl)[1:length(indep)] <- indep
 
-            form <- stats::as.formula(sprintf("%s ~ factor(%s) - 1%s", dv, indep, cov_str))
-            mod  <- stats::lm(form, data = data,
-                              weight = weight_vec)
+            # Estimate Pr(turnout | X) ----
+            indep_str <- paste(indep, collapse = " + ")
+
+            form_turnout <- stats::as.formula(sprintf("%s ~ %s", dv_turnout, indep_str))
+
+            lm_turnout  <-
+                stats::lm(form_turnout,
+                          data = data_turnout, weight = weight_turnout)
+
+            # Estimate Pr(vote | turnout, X) ----
+            voter_ind <- which(pull(data_vote, dv_turnout) == 1)
+
+            # vote = Rep
+            form_voterep <- stats::as.formula(sprintf("%s ~ %s", dv_voterep, indep_str))
+            lm_voterep  <- stats::lm(form_voterep,
+                                     data = data_vote[voter_ind, ],
+                                     weight = weight_vote[voter_ind])
+
+            # vote = Dem
+            form_votedem <- stats::as.formula(sprintf("%s ~ %s", dv_votedem, indep_str))
+            lm_votedem  <- stats::lm(form_votedem,
+                                     data = data_vote[voter_ind, ],
+                                     weight = weight_vote[voter_ind])
+
+
+
+            # Predict ----
+            # Predict turnout, vote choice on same X values as density estimation
 
             results <-
-                mutate(ungroup(grp_tbl),
-                       # Pr(Rep | x)
-                       cond_rep = stats::predict(mod, newdata = grp_tbl),
-                       net_rep  = cond_rep * prob
+                grp_tbl %>%
+                mutate(
+                    prob = prop,
+                    prop = NULL,
+                    pr_turnout = stats::predict(lm_turnout, newdata = .),
+                    pr_voterep = stats::predict(lm_voterep, newdata = .),
+                    pr_votedem = stats::predict(lm_votedem, newdata = .),
+
+                    net_rep = (pr_voterep - pr_votedem) * pr_turnout * prob
                 )
 
             out <- vbdf(data = results,
-                        bloc_var = c(indep, cov),
+                        bloc_var = indep,
                         var_type  = "discrete")
 
         } else {
-            # TODO: Abstract to boot_start() with vb_continuous
-            # Create matrix of rows for each iteration
-            # Accept a column name (string) or vector of weights
-            itermat <-
-                replicate(boot_iters,
-                          sample.int(nrow(data), replace = TRUE,
-                                     prob = weight_vec)
-                )
 
-            # Add the original sample to the front
-            itermat <- cbind(1:nrow(data), itermat)
-            colnames(itermat) <- c("resample-0",
-                                   sprintf("resample-%s", 1:boot_iters))
+            # Create matrix of data-row indices for each iteration
+            itermat_density <-
+                boot_mat(nrow(data_density), iters = boot_iters,
+                         weight = weight_density)
+
+            itermat_turnout <-
+                boot_mat(nrow(data_turnout), iters = boot_iters,
+                         weight = weight_turnout)
+
+            itermat_vote <-
+                boot_mat(nrow(data_vote), iters = boot_iters,
+                         weight = weight_vote)
+
 
             # Run bootstrap
             boot_results <- list()
 
-            for(itnm in colnames(itermat)){
-                boot_data <- data[itermat[ , itnm], ]
+            for(itnm in colnames(itermat_density)){
+                boot_density <- data_density[itermat_density[ , itnm], ]
+                boot_turnout <- data_turnout[itermat_turnout[ , itnm], ]
+                boot_vote    <- data_vote[itermat_vote[ , itnm], ]
 
                 boot_out <-
-                    vb_discrete(data = boot_data,
-                                dv = dv, indep = indep, cov = cov,
-                                weight = weight,
+                    vb_discrete(data_density = boot_density,
+                                data_turnout = boot_turnout,
+                                data_vote    = boot_vote,
+
+                                indep = indep, dv_turnout = dv_turnout,
+                                dv_voterep = dv_voterep, dv_votedem = dv_votedem,
+                                weight = NULL,
                                 boot_iters = FALSE)
 
                 boot_results[[itnm]] <- boot_out
@@ -114,7 +191,7 @@ vb_discrete <-
 
             }
 
-            results <- vb_rbind(boot_results, .id = "resample")
+            results <- bind_rows(boot_results, .id = "resample")
 
             out <-
                 vbdf(results,
@@ -126,33 +203,65 @@ vb_discrete <-
         return(out)
     }
 
-#' Weighted frequency table by group
+#' Weighted frequency table or proportions
 #'
-#' @param data     data.frame
-#' @param grp_vars character vector naming columns to group by
-#' @param weight   string naming the column of weights
-#'
-#' @import dplyr
+#' @param ...     vectors of class factor or character, or a list/data.frame of such vectors.
+#' @param weight  optional vector of weights. The default uses uniform weights of 1.
+#' @param prop    logical, whether to return proportions or counts. Default returns counts.
+#' @param return_tibble    logical, whether to return a tibble or named vector.
 #'
 #' @export
-grp_wtd_table <- function(data, grp_vars, weight = NULL){
 
-    require(dplyr)
+wtd_table <-
+    function(...,
+             weight = NULL, na.rm = FALSE,
+             prop = FALSE, return_tibble = FALSE,
+             normwt = FALSE){
 
-    stopifnot(is.data.frame(data))
-    stopifnot(rlang::has_name(data, grp_vars))
+        require(collapse)
 
-    # Sum weights within var and year
-    if(is.null(weight)) data$weight <- 1
-
-    out <-
-        group_by(data, across(all_of(grp_vars))) %>%
-        summarize(prob = sum(weight)/sum(data$weight),
-                  n    = n())
+        # Factor/character check
+        if(!all( sapply(list(...), is.factor)    |
+                 sapply(list(...), is.character) |
+                 sapply(list(...), is.list)
+                )
+           ) stop("All vector inputs must be factor or character. All subsequent arguments must be fully named.")
 
 
-    if(is.null(weight)) data$weight <- NULL
+        tabdf <- data.frame(...)
+        if(normwt) weight <- weight * nrow(tabdf)/sum(weight)
 
-    return(out)
-}
+        # Use weights if present, otherwise all 1
+        weight_vec <- if(is.null(weight)) rep.int(1L, length(tabfac)) else weight
 
+        if(na.rm){
+            # Remove values where any ... is NA
+            tabdf <- na.omit(tabdf)
+            # Remove corresponding weights
+            na_ind <- unique(attr(tabdf, "na.action"))
+            weight_vec <- weight_vec[- na_ind]
+        }
+
+        # Sum weights within group
+        grps <- GRP(tabdf)
+        out  <- fsum(weight_vec, grps)
+
+        if(prop) out <- out / sum(out)
+
+        if(return_tibble){
+            out <- tibble::tibble(grps$groups, count = unname(out))
+
+            if(prop) names(out)[names(out) == "count"] <- "prop"
+        }
+
+        return(out)
+    }
+
+
+# Test
+# filter(anes, year == 2020) %>%
+# summarize(
+#     hmisc = prop.table(questionr::wtd.table(race, weights = weight, normwt = TRUE)),
+#     blocs = wtd_table(race, weight = weight,
+#                       na.rm = TRUE, prop = TRUE, normwt = TRUE)
+# )
