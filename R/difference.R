@@ -21,7 +21,7 @@
 #'
 #' @export
 
-vb_diff <- function(vbdf, diff_col, sort_col = "year"){
+vb_difference <- function(vbdf, diff_col, sort_col = "year"){
 
     require(dplyr)
 
@@ -30,6 +30,7 @@ vb_diff <- function(vbdf, diff_col, sort_col = "year"){
     stopifnot(rlang::has_name(vbdf, sort_col))
 
     bloc_var     <- get_bloc_var(vbdf)
+    var_type     <- get_var_type(vbdf)
     resample_col <- if(rlang::has_name(vbdf, "resample")) "resample" else NULL
 
     vbdiff <-
@@ -47,9 +48,17 @@ vb_diff <- function(vbdf, diff_col, sort_col = "year"){
         ) %>%
         ungroup()
 
+    # Remove invalid differences (last rows of each group)
+    diff_cols <- grep("diff_", names(vbdiff), value = TRUE)
+    complete_ind <- which(complete.cases(select(vbdiff, all_of(diff_cols))))
+
+    vbdiff <- vbdiff[complete_ind, ]
+
     # group_by removed the vbdf class and attributes
-    out <- new_vbdiff(vbdiff,
-                      bloc_var = bloc_var, diff_col = diff_col)
+    out <- new_vbdiff(x = vbdiff,
+                      bloc_var = bloc_var, var_type = var_type,
+                      diff_col = diff_col)
 
     return(out)
 }
+
