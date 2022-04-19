@@ -4,7 +4,7 @@
 \alias{check_vbdf}
 \title{Validator for class vbdf}
 \usage{
-check_vbdf(x)
+check_vbdf(x, tol = sqrt(.Machine$double.eps))
 }
 \arguments{
 \item{x}{object to check}

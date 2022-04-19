@@ -3,7 +3,7 @@
 #' Constructor for class vbdiff
 #'
 #' @param x
-#' @param bloc_var
+#' @inheritParams vbdf
 #' @param diff_col
 
 new_vbdiff <- function(x, bloc_var, var_type, diff_col){

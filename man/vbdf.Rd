@@ -20,5 +20,5 @@ A \code{vbdf} object.
 Create a vbdf object holding bloc-level estimates of composition, turnout,
 and/or vote choice. This function is mostly for internal use, but you may
 want it to create a \code{vbdf} object from your custom voting bloc analysis.
-A valid \code{vbdf} object can be used in \link{vb_difference} and \link{plot_vbdf}
+A valid \code{vbdf} object can be used in \link{vb_difference} and \link{plot_vbdf}.
 }

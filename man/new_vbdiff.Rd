@@ -7,6 +7,11 @@ Constructor for class vbdiff}
 \usage{
 new_vbdiff(x, bloc_var, var_type, diff_col)
 }
+\arguments{
+\item{bloc_var}{string, the name of the variable that defines the voting blocs}
+
+\item{var_type}{string, the type of varialbe, discrete or continuous}
+}
 \description{
 vbdiff class and methods
 Constructor for class vbdiff

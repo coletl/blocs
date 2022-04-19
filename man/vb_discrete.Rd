@@ -30,6 +30,10 @@ include any columns named by \code{indep} and \code{weight}.}
 columns named by \code{dv_turnout}, \code{indep} and
 \code{weight}.}
 
+\item{data_vote}{data.frame of blocs' vote choice data. Must include any
+columns named by \code{dv_turnout}, \code{dv_voterep}, \code{dv_votedem},
+\code{indep}, and \code{weight}.}
+
 \item{indep}{string, column name of the independent variable defining
 discrete voting blocs.}
 

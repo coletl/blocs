@@ -12,7 +12,7 @@
 #'   \code{weight}.
 #' @param data_vote      data.frame of blocs' vote choice data. Must include any
 #'   columns named by \code{dv_turnout}, \code{dv_voterep}, \code{dv_votedem},
-#'   \code{indep}, and \code{weight}.}
+#'   \code{indep}, and \code{weight}.
 #' @param indep      string, column name of the independent variable defining
 #'   discrete voting blocs.
 #' @param dv_turnout     string, column name of the dependent variable flagging
@@ -72,13 +72,13 @@ vb_discrete <-
 
         if(!is.null(weight)) {
             if(rlang::has_name(data_density, weight))
-                weight_density <- pull(data_density, weight)
+                weight_density <- data_density[[weight]]
 
             if(rlang::has_name(data_turnout, weight))
-                weight_turnout <- pull(data_turnout, weight)
+                weight_turnout <- data_turnout[[weight]]
 
             if(rlang::has_name(data_vote, weight))
-                weight_vote    <- pull(data_vote, weight)
+                weight_vote    <- data_vote[[weight]]
         }
 
 
@@ -116,7 +116,7 @@ vb_discrete <-
                           data = data_turnout, weight = weight_turnout)
 
             # Estimate Pr(vote | turnout, X) ----
-            voter_ind <- which(pull(data_vote, dv_turnout) == 1)
+            voter_ind <- which(data_vote[["dv_turnout"]] == 1)
 
             # vote = Rep
             form_voterep <- stats::as.formula(sprintf("%s ~ %s", dv_voterep, indep_str))

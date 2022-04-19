@@ -1,6 +1,5 @@
 ################ Uncertainty ##############
 
-
 boot_mat <- function(nrow, iters, weight = NULL){
     itermat <-
         replicate(iters, sample.int(nrow, replace = TRUE, prob = weight))
@@ -15,14 +14,18 @@ boot_mat <- function(nrow, iters, weight = NULL){
 
 #' Compute uncertainty for voting blocs analysis
 #'
+#' This generic function will take the result of a voting blocs analysis run
+#' with bootstrap iterations and compute resampling-based uncertainty estimates.
+#'
 #' @param object a \code{vbdf} or \code{vbdiff} object.
 #' @param ... further arguments to pass to methods
 #'
 #' @export
 
-vb_uncertainty <- function(object, ...) UseMethod("vb_uncertainty")
+vb_uncertainty <- function(object, type, estimates, ...) UseMethod("vb_uncertainty")
 
-#' Compute uncertainty for a vbdf object
+
+#' @describeIn vb_uncertainty Uncertainty for a vbdf object
 #'
 #' @param vbdf a \code{vbdf} object, usually the result of \code{vb_discrete} or
 #'   \code{vb_continuous}.
@@ -38,7 +41,7 @@ vb_uncertainty <- function(object, ...) UseMethod("vb_uncertainty")
 #' @param low_ci  numeric. If you include the string \code{"low"} in \code{funcs}, then use this argument to control the lower bound of the confidence interval.
 #' @param high_ci numeric. If you include the string \code{"high"} in \code{funcs}, then use this argument to control the upper bound of the confidence interval.
 #' @param bin_col character vector naming the columns that contain the bins. Only used if  \code{type} is \code{"binned"}.
-#' @return a \code{vbdf} object with additional columns for each combination
+#' @return A \code{vbdf} object with additional columns for each combination
 #'   of \code{estimates} and \code{funcs}.
 #'
 #' @export vb_uncertainty.vbdf
@@ -52,6 +55,7 @@ vb_uncertainty.vbdf <-
              bin_col){
 
         require(dplyr)
+        if(missing(estimates)) stop("Missing required argument estimates")
 
         # check_vbdiff(vbdiff)
         type <- match.arg(type)
@@ -84,11 +88,12 @@ vb_uncertainty.vbdf <-
         }
 
         if(type == "binned"){
+            if(missing(bin_col)) stop("Missing required argument bin_col")
 
             uncertainty_summary <-
 
                 vbdf %>%
-                # Begin by integrating estimates within bins and iteration
+                # Begin by integrating estimates within bin and iteration
                 group_by(across(all_of(c("resample", bin_col)))) %>%
 
                 summarize(
@@ -130,27 +135,11 @@ vb_uncertainty.vbdf <-
     }
 
 
-#' Compute uncertainty for a vbdiff object
+
+#' @describeIn vb_uncertainty Uncertainty for a vbdiff object
 #'
 #' @param vbdiff    a \code{vbdiff} object, the result of \code{vb_difference()}.
-#' @param type a string naming the type of independent variable summary. Use
-#'   \code{"binned"} when working with binned output of \code{vb_continuous()}.
-#' @param estimates character vector naming columns for which to calculate
-#'   uncertainty estimates.
-#' @param bin_col character vector naming columns that contain the bins. Used
-#'   only if  \code{type} is \code{"binned"}.
-#' @param na.rm logical indicating whether to remove \code{NA} values in
-#'   \code{estimates}.
-#' @param funcs character vector of summary functions to apply to
-#'   \code{estimates}. Alternatively, supply your own list of functions, which
-#'   should accept a numeric vector input and return a scalar.
-#' @param low_ci  numeric. If you include the string \code{"low"} in
-#'   \code{funcs}, then use this argument to control the lower bound of the
-#'   confidence interval.
-#' @param high_ci numeric. If you include the string \code{"high"} in
-#'   \code{funcs}, then use this argument to control the upper bound of the
-#'   confidence interval.
-#' @return a \code{vbdiff} object with additional columns for each combination
+#' @return A \code{vbdiff} object with additional columns for each combination
 #'   of \code{estimates} and \code{funcs}.
 #'
 #' @import dplyr
@@ -164,6 +153,7 @@ vb_uncertainty.vbdiff <-
              low_ci = 0.025, high_ci = 0.975){
 
         require(dplyr)
+        if(missing(estimates)) stop("Missing required argument estimates")
 
         type <- match.arg(type)
 
@@ -194,6 +184,8 @@ vb_uncertainty.vbdiff <-
         }
 
         if(type == "binned"){
+
+            if(missing(bin_col)) stop("Missing required argument bin_col")
 
             uncertainty_summary <-
 

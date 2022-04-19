@@ -2,15 +2,78 @@
 % Please edit documentation in R/uncertainty.R
 \name{vb_uncertainty}
 \alias{vb_uncertainty}
+\alias{vb_uncertainty.vbdf}
+\alias{vb_uncertainty.vbdiff}
 \title{Compute uncertainty for voting blocs analysis}
 \usage{
-vb_uncertainty(object, ...)
+vb_uncertainty(object, type, estimates, ...)
+
+\method{vb_uncertainty}{vbdf}(
+  vbdf,
+  type = c("continuous", "binned", "discrete"),
+  estimates,
+  na.rm = FALSE,
+  funcs = c("original", "mean", "median", "low", "high"),
+  low_ci = 0.025,
+  high_ci = 0.975,
+  bin_col
+)
+
+\method{vb_uncertainty}{vbdiff}(
+  vbdiff,
+  type = c("continuous", "binned", "discrete"),
+  estimates,
+  bin_col,
+  na.rm = FALSE,
+  funcs = c("original", "mean", "median", "low", "high"),
+  low_ci = 0.025,
+  high_ci = 0.975
+)
 }
 \arguments{
 \item{object}{a \code{vbdf} or \code{vbdiff} object.}
 
+\item{type}{a string naming the type of independent variable summary. Use
+\code{"binned"} when working with binned output of \code{vb_continuous()}.}
+
+\item{estimates}{character vector naming columns for which to calculate
+uncertainty estimates.}
+
 \item{...}{further arguments to pass to methods}
+
+\item{vbdf}{a \code{vbdf} object, usually the result of \code{vb_discrete} or
+\code{vb_continuous}.}
+
+\item{na.rm}{logical indicating whether to remove \code{NA} values in
+\code{estimates}.}
+
+\item{funcs}{character vector of summary functions to apply to
+\code{estimates}. Alternatively, supply your own list of functions, which
+should accept a numeric vector input and return a scalar.}
+
+\item{low_ci}{numeric. If you include the string \code{"low"} in \code{funcs}, then use this argument to control the lower bound of the confidence interval.}
+
+\item{high_ci}{numeric. If you include the string \code{"high"} in \code{funcs}, then use this argument to control the upper bound of the confidence interval.}
+
+\item{bin_col}{character vector naming the columns that contain the bins. Only used if  \code{type} is \code{"binned"}.}
+
+\item{vbdiff}{a \code{vbdiff} object, the result of \code{vb_difference()}.}
+}
+\value{
+A \code{vbdf} object with additional columns for each combination
+  of \code{estimates} and \code{funcs}.
+
+A \code{vbdiff} object with additional columns for each combination
+  of \code{estimates} and \code{funcs}.
 }
 \description{
-Compute uncertainty for voting blocs analysis
+This generic function will take the result of a voting blocs analysis run
+with bootstrap iterations and compute resampling-based uncertainty estimates.
 }
+\section{Methods (by class)}{
+\itemize{
+\item \code{vbdf}: Uncertainty for a vbdf object
+
+\item \code{vbdiff}: Uncertainty for a vbdiff object
+}}
+

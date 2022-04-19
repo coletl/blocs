@@ -2,21 +2,25 @@
 % Please edit documentation in R/continuous.R
 \name{wtd_quantile}
 \alias{wtd_quantile}
-\title{Weighted quantiles}
+\title{Weighted quantiles ' ' This function calls \link[collapse]{fnth} repeatedly
+over a vector of probabilities to produce output like \link[stats]{quantile}.
+Fast, with minimal dependencies, but does not accept negative weights.}
 \usage{
 wtd_quantile(x, probs = seq(0, 1, 0.25), weight, na.rm = FALSE, ...)
 }
 \arguments{
-\item{x}{numeric vector}
+\item{x}{numeric vector.}
 
-\item{probs}{numeric vector of probabilities}
+\item{probs}{numeric vector of probabilities.}
 
-\item{weight}{numeric vector of non-negative weights}
+\item{weight}{numeric vector of non-negative weights.}
 
 \item{na.rm}{logical whether to remove missing values}
 
-\item{...}{further arguments passed to \link[collapse]{fnth}}
+\item{...}{further arguments passed to \link[collapse]{fnth}.}
 }
 \description{
-Weighted quantiles
+Weighted quantiles ' ' This function calls \link[collapse]{fnth} repeatedly
+over a vector of probabilities to produce output like \link[stats]{quantile}.
+Fast, with minimal dependencies, but does not accept negative weights.
 }

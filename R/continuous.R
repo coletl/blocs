@@ -11,7 +11,7 @@
 #'   columns named by \code{dv_turnout}, \code{indep} and \code{weight}.
 #' @param data_vote      data.frame of blocs' vote choice data. Must include any
 #'   columns named by \code{dv_turnout}, \code{dv_voterep}, \code{dv_votedem},
-#'   \code{indep}, and \code{weight}.}
+#'   \code{indep}, and \code{weight}.
 #' @param indep      column names of the independent variable(s) defining
 #'   continuous voting blocs.
 #' @param dv_turnout     string, column name of the dependent variable flagging
@@ -71,20 +71,20 @@ vb_continuous <-
         if(is.null(min_val)) min_val <- mapply(min, select(ungroup(data_density), all_of(c(indep))))
         if(is.null(max_val)) max_val <- mapply(max, select(ungroup(data_density), all_of(c(indep))))
 
-        # Start with NULL weights, but grab the col if present
+        # Start with uniform weights if NULL, but grab the col if present
         weight_density <- rep(1L, nrow(data_density))
         weight_turnout <- rep(1L, nrow(data_turnout))
         weight_vote    <- rep(1L, nrow(data_vote))
 
         if(!is.null(weight)) {
             if(rlang::has_name(data_density, weight))
-                weight_density <- pull(data_density, weight)
+                weight_density <- data_density[[weight]]
 
             if(rlang::has_name(data_turnout, weight))
-                weight_turnout <- pull(data_turnout, weight)
+                weight_turnout <- data_turnout[[weight]]
 
             if(rlang::has_name(data_vote, weight))
-                weight_vote    <- pull(data_vote, weight)
+                weight_vote    <- data_vote[[weight]]
         }
 
         if(boot_iters == 0){
@@ -129,7 +129,7 @@ vb_continuous <-
 
                         sprintf("s(%s, k = %s)",
                                 indep,
-                                round(nrow(na.omit(select(data_vote, all_of(c(dv_voterep, indep)))))/3)
+                                round(nrow(stats::na.omit(select(data_vote, all_of(c(dv_voterep, indep)))))/3)
                         ) %>%
 
                             paste(collapse = " + ") %>%
@@ -150,7 +150,7 @@ vb_continuous <-
 
                         sprintf("s(%s, k = %s)",
                                 indep,
-                                round(nrow(na.omit(select(data_vote, all_of(c(dv_votedem, indep)))))/3)
+                                round(nrow(stats::na.omit(select(data_vote, all_of(c(dv_votedem, indep)))))/3)
                         ) %>%
 
                             paste(collapse = " + ") %>%
@@ -268,24 +268,23 @@ estimate_density <- function(x, min, max, n_points = 100, w, ...){
 }
 
 
-#' Weighted quantiles
-#'
-#' @param x      numeric vector
-#' @param probs  numeric vector of probabilities
-#' @param weight numeric vector of non-negative weights
+#' Weighted quantiles ' ' This function calls \link[collapse]{fnth} repeatedly
+#' over a vector of probabilities to produce output like \link[stats]{quantile}.
+#' Fast, with minimal dependencies, but does not accept negative weights.
+
+#' @param x      numeric vector.
+#' @param probs  numeric vector of probabilities.
+#' @param weight numeric vector of non-negative weights.
 #' @param na.rm  logical whether to remove missing values
-#' @param ...    further arguments passed to \link[collapse]{fnth}
+#' @param ...    further arguments passed to \link[collapse]{fnth}.
 #'
 #' @export
 #'
-#' This function calls \link[collapse]{fnth} repeatedly over a vector of
-#' probabilities to produce output like \link[stats]{quantile}.
 #'
-#' TEST AGAINST QUANTILE AND WTD.QUANTILE
 
 wtd_quantile <- function(x, probs = seq(0, 1, 0.25), weight, na.rm = FALSE, ...){
 
-
+    if(any(weight < 0)) stop("collapse::fnth does not support negative weights.")
     probs_tags <- paste0(probs * 100, "%")
 
     # collapse::fnth doesn't allow 0 or 1 probabilities
@@ -295,9 +294,8 @@ wtd_quantile <- function(x, probs = seq(0, 1, 0.25), weight, na.rm = FALSE, ...)
 
     out <-
         vapply(X = probs, FUN.VALUE = double(1),
-               FUN =
-                   function(p) collapse::fnth(x, w = weight, n = p,
-                                              na.rm = na.rm, ...))
+               FUN = \(p) collapse::fnth(x, w = weight, n = p,
+                                         na.rm = na.rm, ...))
     names(out) <- probs_tags
 
     return(out)
