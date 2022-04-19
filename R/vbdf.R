@@ -29,7 +29,7 @@ new_vbdf <- function(x, bloc_var = character(),
 #'
 #' @import dplyr
 
-check_vbdf <- function(x){
+check_vbdf <- function(x, tol = sqrt(.Machine$double.eps)){
 
     require(dplyr)
 
@@ -44,14 +44,22 @@ check_vbdf <- function(x){
     stopifnot(
         dplyr::summarize(x,
                          across(matches("^net_rep"),
-                                ~ all(dplyr::between(.x, -1, 1)))) %>%
+                                ~ all(
+                                    .x > -1 - tol,
+                                    .x <  1 + tol
+                                    )
+                                )
+                         ) %>%
             all(na.rm = TRUE)
     )
 
     stopifnot(
         dplyr::summarize(x,
                          across(matches("^prob"),
-                                ~ .x %>% dplyr::between(0, 1))) %>%
+                                ~ all(.x > 0 - tol,
+                                      .x < 1 + tol)
+                                )
+                         ) %>%
             all(na.rm = TRUE)
     )
 
@@ -63,7 +71,7 @@ check_vbdf <- function(x){
 #' Create a vbdf object holding bloc-level estimates of composition, turnout,
 #' and/or vote choice. This function is mostly for internal use, but you may
 #' want it to create a \code{vbdf} object from your custom voting bloc analysis.
-#' A valid \code{vbdf} object can be used in \link{vb_difference} and \link{plot_vbdf}
+#' A valid \code{vbdf} object can be used in \link{vb_difference} and \link{plot_vbdf}.
 #'
 #' @param data data.frame of voting-bloc results to convert to a \code{vbdf} object
 #' @param bloc_var string, the name of the variable that defines the voting blocs
