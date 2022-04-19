@@ -36,8 +36,8 @@ vb_difference <- function(vbdf, diff_col, sort_col = "year"){
     vbdiff <-
         vbdf %>%
 
-        group_by(across(all_of(c(bloc_var, resample_col)))) %>%
-        arrange(across(all_of(c(bloc_var,  resample_col, sort_col)))) %>%
+        group_by(across(all_of(c(bloc_var, resample_col, group_vars(vbdf))))) %>%
+        arrange(all_of(sort_col)) %>%
 
         mutate(
             across(
