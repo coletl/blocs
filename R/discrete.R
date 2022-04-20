@@ -106,6 +106,9 @@ vb_discrete <-
                           prop = TRUE, return_tibble = TRUE)
             names(grp_tbl)[1:length(indep)] <- indep
 
+            if(any(grp_tbl$prop < 0.005))
+                warning("Resampling resulted in an extremely small proportion.\n Regression may fail for absent factor levels.")
+
             # Estimate Pr(turnout | X) ----
             indep_str <- paste(indep, collapse = " + ")
 
@@ -120,17 +123,26 @@ vb_discrete <-
 
             # vote = Rep
             form_voterep <- stats::as.formula(sprintf("%s ~ %s", dv_voterep, indep_str))
-            lm_voterep  <- stats::lm(form_voterep,
-                                     data = data_vote[voter_ind, ],
-                                     weight = weight_vote[voter_ind])
 
             # vote = Dem
             form_votedem <- stats::as.formula(sprintf("%s ~ %s", dv_votedem, indep_str))
-            lm_votedem  <- stats::lm(form_votedem,
-                                     data = data_vote[voter_ind, ],
-                                     weight = weight_vote[voter_ind])
 
 
+            lm_voterep <-
+                tryCatch(
+                    stats::lm(form_voterep,
+                              data = data_vote[voter_ind, ],
+                              weight = weight_vote[voter_ind]),
+                    error = \(e) NA_integer_
+                    )
+
+            lm_votedem <-
+                tryCatch(
+                    stats::lm(form_votedem,
+                              data = data_vote[voter_ind, ],
+                              weight = weight_vote[voter_ind]),
+                    error = \(e) NA_integer_
+                    )
 
             # Predict ----
             # Predict turnout, vote choice on same X values as density estimation
@@ -141,8 +153,8 @@ vb_discrete <-
                     prob = prop,
                     prop = NULL,
                     pr_turnout = stats::predict(lm_turnout, newdata = .),
-                    pr_voterep = stats::predict(lm_voterep, newdata = .),
-                    pr_votedem = stats::predict(lm_votedem, newdata = .),
+                    pr_voterep = ifelse(is.na(lm_voterep), NA_real_, stats::predict(lm_voterep, newdata = .)),
+                    pr_votedem = ifelse(is.na(lm_voterep), NA_real_, stats::predict(lm_votedem, newdata = .)),
 
                     net_rep = (pr_voterep - pr_votedem) * pr_turnout * prob
                 )
