@@ -125,7 +125,7 @@ vb_continuous <-
 
                     mgcv::gam(form_voterep, data = data_vote),
 
-                    error = function(e) {
+                    error = \(e) {
 
                         sprintf("s(%s, k = %s)",
                                 indep,

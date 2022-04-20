@@ -39,5 +39,7 @@ Imports:
     collapse (>= 1.7.6),
     dplyr (>= 1.0.6),
     ggplot2 (>= 3.2.0),
+    ks (>= 1.13.4),
+    mgcv (>= 1.8.39),
     rlang (>= 1.0.0),
     tibble (>= 3.0.0)
