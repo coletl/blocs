@@ -119,7 +119,7 @@ vb_discrete <-
                           data = data_turnout, weight = weight_turnout)
 
             # Estimate Pr(vote | turnout, X) ----
-            voter_ind <- which(data_vote[["dv_turnout"]] == 1)
+            voter_ind <- which(data_vote[[dv_turnout]] == 1)
 
             # vote = Rep
             form_voterep <- stats::as.formula(sprintf("%s ~ %s", dv_voterep, indep_str))
@@ -153,8 +153,8 @@ vb_discrete <-
                     prob = prop,
                     prop = NULL,
                     pr_turnout = stats::predict(lm_turnout, newdata = .),
-                    pr_voterep = ifelse(is.na(lm_voterep), NA_real_, stats::predict(lm_voterep, newdata = .)),
-                    pr_votedem = ifelse(is.na(lm_voterep), NA_real_, stats::predict(lm_votedem, newdata = .)),
+                    pr_voterep = ifelse(all(is.na(lm_voterep)), 1, stats::predict(lm_voterep, newdata = .)),
+                    pr_votedem = ifelse(all(is.na(lm_votedem)), 1, stats::predict(lm_votedem, newdata = .)),
 
                     net_rep = (pr_voterep - pr_votedem) * pr_turnout * prob
                 )
