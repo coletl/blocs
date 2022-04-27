@@ -65,11 +65,12 @@ vb_uncertainty.vbdf <-
         if(is.character(funcs))
             funcs <-
             list(
+                # resample is a column in vbdf
                 original = ~ .x[resample == "resample-0"],
-                mean     = ~ mean(.x, na.rm = na.rm),
-                median   = ~ median(.x, na.rm = na.rm),
-                low      = ~ quantile(.x, prob  = low_ci, na.rm = na.rm),
-                high     = ~ quantile(.x, prob = high_ci, na.rm = na.rm)
+                mean     = ~ mean(.x[resample != "resample-0"],     na.rm = na.rm),
+                median   = ~ median(.x[resample != "resample-0"],   na.rm = na.rm),
+                low      = ~ quantile(.x[resample != "resample-0"], prob = low_ci, na.rm = na.rm),
+                high     = ~ quantile(.x[resample != "resample-0"], prob = high_ci, na.rm = na.rm)
             )[funcs]
 
 
@@ -83,7 +84,8 @@ vb_uncertainty.vbdf <-
                     across(all_of(estimates),
                            .fns = funcs
                     ),
-                    boot_iters  = n_distinct(resample)
+                    # subtract the original data, resample == resample-0
+                    boot_iters  = n_distinct(setdiff(resample, "resample-0"))
                 )
         }
 
@@ -107,7 +109,8 @@ vb_uncertainty.vbdf <-
                     across(all_of(estimates),
                            .fns = funcs
                     ),
-                    boot_iters  = n_distinct(resample)
+                    # subtract the original data, resample == resample-0
+                    boot_iters  = n_distinct(setdiff(resample, "resample-0"))
                 )
         }
 
@@ -122,7 +125,8 @@ vb_uncertainty.vbdf <-
                     across(all_of(estimates),
                            .fns = funcs
                     ),
-                    boot_iters  = n_distinct(resample)
+                    # subtract the original data, resample == resample-0
+                    boot_iters  = n_distinct(setdiff(resample, "resample-0"))
                 )
         }
 
