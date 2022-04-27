@@ -133,7 +133,7 @@ vb_discrete <-
                     stats::lm(form_voterep,
                               data = data_vote[voter_ind, ],
                               weight = weight_vote[voter_ind]),
-                    error = \(e) NA_integer_
+                    error = function(e) NA_integer_
                     )
 
             lm_votedem <-
@@ -141,7 +141,7 @@ vb_discrete <-
                     stats::lm(form_votedem,
                               data = data_vote[voter_ind, ],
                               weight = weight_vote[voter_ind]),
-                    error = \(e) NA_integer_
+                    error = function(e) NA_integer_
                     )
 
             # Predict ----

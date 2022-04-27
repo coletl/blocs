@@ -43,3 +43,5 @@ Imports:
     mgcv (>= 1.8.39),
     rlang (>= 1.0.0),
     tibble (>= 3.0.0)
+Depends: 
+    R (>= 4.0.0)

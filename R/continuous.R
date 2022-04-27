@@ -125,7 +125,7 @@ vb_continuous <-
 
                     mgcv::gam(form_voterep, data = data_vote),
 
-                    error = \(e) {
+                    error = function(e) {
 
                         sprintf("s(%s, k = %s)",
                                 indep,
@@ -294,8 +294,8 @@ wtd_quantile <- function(x, probs = seq(0, 1, 0.25), weight, na.rm = FALSE, ...)
 
     out <-
         vapply(X = probs, FUN.VALUE = double(1),
-               FUN = \(p) collapse::fnth(x, w = weight, n = p,
-                                         na.rm = na.rm, ...))
+               FUN = function(p) collapse::fnth(x, w = weight, n = p,
+                                                na.rm = na.rm, ...))
     names(out) <- probs_tags
 
     return(out)
