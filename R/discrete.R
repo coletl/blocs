@@ -110,7 +110,7 @@ vb_discrete <-
                 warning("Resampling resulted in an extremely small proportion.\n Regression may fail for absent factor levels.")
 
             # Estimate Pr(turnout | X) ----
-            indep_str <- paste(indep, collapse = " + ")
+            indep_str <- paste(indep, collapse = " * ")
 
             form_turnout <- stats::as.formula(sprintf("%s ~ %s", dv_turnout, indep_str))
 

@@ -103,7 +103,7 @@ vb_continuous <-
             ### Estimate Pr(turnout | X)
             indep_str <-
                 sprintf("s(%s)", indep) %>%
-                paste(collapse = " + ")
+                paste(collapse = " * ")
 
             form_turnout <- stats::as.formula(sprintf("%s ~ %s", dv_turnout, indep_str))
 
@@ -132,7 +132,7 @@ vb_continuous <-
                                 round(nrow(stats::na.omit(select(data_vote, all_of(c(dv_voterep, indep)))))/3)
                         ) %>%
 
-                            paste(collapse = " + ") %>%
+                            paste(collapse = " * ") %>%
                             sprintf("%s ~ %s", dv_turnout, .) %>%
                             stats::as.formula() %>%
                             mgcv::gam(data = data_vote)
@@ -153,7 +153,7 @@ vb_continuous <-
                                 round(nrow(stats::na.omit(select(data_vote, all_of(c(dv_votedem, indep)))))/3)
                         ) %>%
 
-                            paste(collapse = " + ") %>%
+                            paste(collapse = " * ") %>%
                             sprintf("%s ~ %s", dv_turnout, .) %>%
                             stats::as.formula() %>%
                             mgcv::gam(data = data_vote)
