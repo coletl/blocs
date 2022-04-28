@@ -3,8 +3,8 @@
 #' Define voting blocs along a \strong{continuous} variable and estimate their
 #' partisan vote contributions.
 #'
-#' @param data           default data.frame to use as the source for
-#'   density, turnout, and vote choice data.
+#' @param data           default data.frame to use as the source for density,
+#'   turnout, and vote choice data.
 #' @param data_density   data.frame of blocs' composition/density data. Must
 #'   include any columns named by \code{indep} and \code{weight}.
 #' @param data_turnout   data.frame of blocs' turnout data. Must include any
@@ -14,6 +14,9 @@
 #'   \code{indep}, and \code{weight}.
 #' @param indep      column names of the independent variable(s) defining
 #'   continuous voting blocs.
+#' @param dv3        string, column name of the dependent variable coded as
+#'   follows: -1 for Republican vote choice, 0 for no or third-party vote, 1 for
+#'   Democratic vote choice
 #' @param dv_turnout     string, column name of the dependent variable flagging
 #'   voter turnout. That column must be coded {0, 1}.
 #' @param dv_voterep     string, column name of the dependent variable flagging
@@ -44,7 +47,9 @@
 vb_continuous <-
     function(data,
              data_density = data, data_turnout = data, data_vote = data,
-             indep, dv_turnout, dv_voterep, dv_votedem,
+             indep,
+             dv3 = NULL,
+             dv_turnout = NULL, dv_voterep = NULL, dv_votedem = NULL,
              weight = NULL, min_val = NULL, max_val = NULL, n_points = 100,
              boot_iters = FALSE, verbose = FALSE){
 
@@ -56,12 +61,14 @@ vb_continuous <-
         stopifnot(rlang::has_name(data_density, indep))
         stopifnot(rlang::has_name(data_density, weight))
 
-        stopifnot(rlang::has_name(data_turnout, dv_turnout))
+        stopifnot(!is.null(dv3) | length(c(dv_turnout, dv_voterep, dv_votedem)) == 3)
+
+        if(missing(dv3)) stopifnot(rlang::has_name(data_turnout, dv_turnout))
         stopifnot(rlang::has_name(data_turnout, indep))
         stopifnot(rlang::has_name(data_turnout, weight))
 
-        stopifnot(rlang::has_name(data_vote, dv_turnout))
-        stopifnot(rlang::has_name(data_vote, c(dv_voterep , dv_votedem)))
+        if(missing(dv3)) stopifnot(rlang::has_name(data_vote, dv_turnout))
+        if(missing(dv3)) stopifnot(rlang::has_name(data_vote, c(dv_voterep , dv_votedem)))
         stopifnot(rlang::has_name(data_vote, indep))
         stopifnot(rlang::has_name(data_vote, weight))
 
@@ -100,85 +107,24 @@ vb_continuous <-
                                  n_points = n_points
                                  )
 
-            ### Estimate Pr(turnout | X)
+            ### Estimate Pr(rep | X)
             indep_str <-
                 sprintf("s(%s)", indep) %>%
                 paste(collapse = " * ")
 
-            form_turnout <- stats::as.formula(sprintf("%s ~ %s", dv_turnout, indep_str))
+            form_dv3 <- stats::as.formula(sprintf("%s ~ %s", dv3, indep_str))
+            gam_dv3  <- mgcv::gam(form_dv3, data_vote)
 
-            # UNWEIGHTED!
-            # See https://stackoverflow.com/questions/56313837/how-to-use-sample-weights-in-gam-mgcv-on-survey-data-for-logit-regression
-            gam_turnout <- mgcv::gam(form_turnout, data = data_turnout)
-            # Could try splines package
-
-            ### Estimate Pr(vote | turnout, X)
-            ### SUBSET TO VOTERS ###
-            data_vote <- filter(data_vote, get(dv_turnout) == 1)
-
-            # vote = Rep
-            form_voterep <- stats::as.formula(sprintf("%s ~ %s", dv_voterep, indep_str))
-            ### tryCatch suggests a lower s(k = basis dimension) in case
-            ### the degrees of freedom don't support the default k
-            gam_voterep <-
-                tryCatch(
-
-                    mgcv::gam(form_voterep, data = data_vote),
-
-                    error = function(e) {
-
-                        sprintf("s(%s, k = %s)",
-                                indep,
-                                round(nrow(stats::na.omit(select(data_vote, all_of(c(dv_voterep, indep)))))/3)
-                        ) %>%
-
-                            paste(collapse = " * ") %>%
-                            sprintf("%s ~ %s", dv_turnout, .) %>%
-                            stats::as.formula() %>%
-                            mgcv::gam(data = data_vote)
-                    }
-                )
-
-            # vote = Dem
-            form_votedem <- stats::as.formula(sprintf("%s ~ %s", dv_votedem, indep_str))
-            gam_votedem <-
-                tryCatch(
-
-                    mgcv::gam(form_votedem, data = data_vote),
-
-                    error = function(e) {
-
-                        sprintf("s(%s, k = %s)",
-                                indep,
-                                round(nrow(stats::na.omit(select(data_vote, all_of(c(dv_votedem, indep)))))/3)
-                        ) %>%
-
-                            paste(collapse = " * ") %>%
-                            sprintf("%s ~ %s", dv_turnout, .) %>%
-                            stats::as.formula() %>%
-                            mgcv::gam(data = data_vote)
-                    }
-                )
             ### Predict
             # Predict turnout, vote choice on same X values as density estimation
             ert <- as.data.frame(dens_estim$x_seq)
             names(ert) <- indep
 
-            pred_turnout <- stats::predict(gam_turnout, newdata = ert)
-            pred_voterep <- stats::predict(gam_voterep, newdata = ert)
-            pred_votedem <- stats::predict(gam_votedem, newdata = ert)
-
             results <-
-                data.frame(
-                    as.data.frame(dens_estim$x_seq),
-                    pr_turnout = pred_turnout,
-                    pr_voterep  = pred_voterep,
-                    pr_votedem  = pred_votedem
-                ) %>%
-                mutate(
-                    prob    = dens_estim$density,
-                    net_rep = (pr_voterep - pr_votedem) * pr_turnout * prob
-                    )
+                data.frame(as.data.frame(dens_estim$x_seq),
+                           prob = dens_estim$density,
+                           cond_rep = predict(gam_dv3, as.data.frame(dens_estim$x_seq))) %>%
+                mutate(net_rep = cond_rep * prob)
 
             out <- vbdf(results, bloc_var = indep,
                         var_type = "continuous")
@@ -210,7 +156,9 @@ vb_continuous <-
                                   data_turnout = boot_turnout,
                                   data_vote    = boot_vote,
 
-                                  indep = indep, dv_turnout = dv_turnout,
+                                  indep = indep,
+                                  dv3 = dv3,
+                                  dv_turnout = dv_turnout,
                                   dv_voterep = dv_voterep, dv_votedem = dv_votedem,
                                   min_val = min_val, max_val = max_val,
                                   # Weighted in resampling
