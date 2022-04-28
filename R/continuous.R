@@ -113,7 +113,7 @@ vb_continuous <-
                 paste(collapse = " * ")
 
             form_dv3 <- stats::as.formula(sprintf("%s ~ %s", dv3, indep_str))
-            gam_dv3  <- mgcv::gam(form_dv3, data_vote)
+            gam_dv3  <- mgcv::gam(form_dv3, data = data_vote)
 
             ### Predict
             # Predict turnout, vote choice on same X values as density estimation
