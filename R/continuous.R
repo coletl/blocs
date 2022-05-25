@@ -104,7 +104,8 @@ vb_continuous <-
                                  min = min_val,
                                  max = max_val,
                                  w = weight_density,
-                                 n_points = n_points
+                                 n_points = n_points,
+                                 ...
                                  )
 
             ### Estimate Pr(rep | X)
