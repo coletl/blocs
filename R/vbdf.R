@@ -26,12 +26,8 @@ new_vbdf <- function(x, bloc_var = character(),
 #' Validator for class vbdf
 #'
 #' @param x object to check
-#'
-#' @import dplyr
 
 check_vbdf <- function(x, tol = sqrt(.Machine$double.eps)){
-
-    require(dplyr)
 
     stopifnot(is.data.frame(x))
     stopifnot("bloc_var" %in% names(attributes((x))))
@@ -43,7 +39,7 @@ check_vbdf <- function(x, tol = sqrt(.Machine$double.eps)){
 
     stopifnot(
         dplyr::summarize(x,
-                         across(matches("^net_rep"),
+                         dplyr::across(dplyr::matches("^net_rep"),
                                 ~ all(
                                     .x > -1 - tol,
                                     .x <  1 + tol
@@ -55,7 +51,7 @@ check_vbdf <- function(x, tol = sqrt(.Machine$double.eps)){
 
     stopifnot(
         dplyr::summarize(x,
-                         across(matches("^prob"),
+                         dplyr::across(dplyr::matches("^prob"),
                                 ~ all(.x > 0 - tol,
                                       .x < 1 + tol)
                                 )

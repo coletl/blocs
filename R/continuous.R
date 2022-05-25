@@ -38,7 +38,6 @@
 #'
 #' @return A \code{vbdf} object.
 #'
-#' @import dplyr
 #' @export
 
 vb_continuous <-
@@ -47,8 +46,6 @@ vb_continuous <-
              indep, dv_turnout, dv_voterep, dv_votedem,
              weight = NULL, min_val = NULL, max_val = NULL, n_points = 100,
              boot_iters = FALSE, verbose = FALSE){
-
-        require(dplyr)
 
         if(is_grouped_df(data_density))
             stop("Density estimation does not permit grouped data frames. Please use split-apply-combine.")
@@ -66,10 +63,10 @@ vb_continuous <-
         stopifnot(rlang::has_name(data_vote, weight))
 
         # No missing values allowed in kde
-        data_density <- stats::na.omit(select(data_density, all_of(c(indep, weight))))
+        data_density <- stats::na.omit(dplyr::select(data_density, dplyr::all_of(c(indep, weight))))
 
-        if(is.null(min_val)) min_val <- mapply(min, select(ungroup(data_density), all_of(c(indep))))
-        if(is.null(max_val)) max_val <- mapply(max, select(ungroup(data_density), all_of(c(indep))))
+        if(is.null(min_val)) min_val <- mapply(min, dplyr::select(dplyr::ungroup(data_density), dplyr::all_of(c(indep))))
+        if(is.null(max_val)) max_val <- mapply(max, dplyr::select(dplyr::ungroup(data_density), dplyr::all_of(c(indep))))
 
         # Start with uniform weights if NULL, but grab the col if present
         weight_density <- rep(1L, nrow(data_density))
@@ -115,7 +112,7 @@ vb_continuous <-
 
             ### Estimate Pr(vote | turnout, X)
             ### SUBSET TO VOTERS ###
-            data_vote <- filter(data_vote, get(dv_turnout) == 1)
+            data_vote <- dplyr::filter(data_vote, get(dv_turnout) == 1)
 
             # vote = Rep
             form_voterep <- stats::as.formula(sprintf("%s ~ %s", dv_voterep, indep_str))
@@ -130,7 +127,7 @@ vb_continuous <-
 
                         sprintf("s(%s, k = %s)",
                                 indep,
-                                round(nrow(stats::na.omit(select(data_vote, all_of(c(dv_voterep, indep)))))/3)
+                                round(nrow(stats::na.omit(dplyr::select(data_vote, dplyr::all_of(c(dv_voterep, indep)))))/3)
                         ) %>%
 
                             paste(collapse = " * ") %>%
@@ -151,7 +148,7 @@ vb_continuous <-
 
                         sprintf("s(%s, k = %s)",
                                 indep,
-                                round(nrow(stats::na.omit(select(data_vote, all_of(c(dv_votedem, indep)))))/3)
+                                round(nrow(stats::na.omit(dplyr::select(data_vote, dplyr::all_of(c(dv_votedem, indep)))))/3)
                         ) %>%
 
                             paste(collapse = " * ") %>%
@@ -252,8 +249,6 @@ vb_continuous <-
 #'
 
 estimate_density <- function(x, min, max, n_points = 100, w, ...){
-    require(ks)
-
     stopifnot(!anyNA(x))
 
     pred_seq <- mapply(seq, from = min, to = max, length.out = n_points)
@@ -290,7 +285,7 @@ wtd_quantile <- function(x, probs = seq(0, 1, 0.25), weight, na.rm = FALSE, ...)
 
     # collapse::fnth doesn't allow 0 or 1 probabilities
     if(0 %in% probs) probs[probs == 0] <- .Machine$double.xmin
-    if(1 %in% probs) probs[probs == 1] <- 1 - 1e-7
+    if(1 %in% probs) probs[probs == 1] <- 1 - .Machine$double.xmin
 
 
     out <-

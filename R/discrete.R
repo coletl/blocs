@@ -29,8 +29,7 @@
 #' @param check_discrere logical, whether to check if \code{indep} is a discrete variable.
 #'
 #' @return A \code{vbdf} object.
-#'
-#' @import dplyr
+#' @importFrom dplyr %>%
 #' @export
 
 
@@ -41,12 +40,10 @@ vb_discrete <-
              weight = NULL, boot_iters = FALSE,
              verbose = FALSE, check_discrete = TRUE){
 
-        require(dplyr)
-
         if(is_grouped_df(data_density))
             stop("Density estimation does not permit grouped data frames. Please use split-apply-combine.")
 
-        if( check_discrete & dplyr::n_distinct(dplyr::select(ungroup(data_density), all_of(indep))) > 50)
+        if( check_discrete & dplyr::n_distinct(dplyr::select(ungroup(data_density), dplyr::all_of(indep))) > 50)
             stop("More than 25 unique values detected in indep. If you are sure you don't want vb_continuous(), set check_discrete = FALSE.")
 
 
@@ -63,7 +60,7 @@ vb_discrete <-
         stopifnot(rlang::has_name(data_vote, weight))
 
         # Remove missing values like vb_continuous()
-        data_density <- stats::na.omit(select(data_density, all_of(c(group_vars(data_density), indep, weight))))
+        data_density <- stats::na.omit(dplyr::select(data_density, dplyr::all_of(c(dplyr::group_vars(data_density), indep, weight))))
 
         # Start with NULL weights, but grab the col if present
         weight_density <- rep(1L, nrow(data_density))
@@ -85,15 +82,15 @@ vb_discrete <-
         # Force independent variables to be discrete
         data_density <-
             data_density %>%
-            mutate(across(all_of(indep), ~ as.factor(.x)))
+            dplyr::mutate(dplyr::across(dplyr::all_of(indep), ~ as.factor(.x)))
 
         data_turnout <-
             data_turnout %>%
-            mutate(across(all_of(indep), ~ as.factor(.x)))
+            dplyr::mutate(dplyr::across(dplyr::all_of(indep), ~ as.factor(.x)))
 
         data_vote <-
             data_vote %>%
-            mutate(across(all_of(indep), ~ as.factor(.x)))
+            dplyr::mutate(dplyr::across(dplyr::all_of(indep), ~ as.factor(.x)))
 
 
 
@@ -101,7 +98,7 @@ vb_discrete <-
 
             # Estimate Pr(X) ----
             grp_tbl <-
-                wtd_table(select(ungroup(data_density), all_of(indep)),
+                wtd_table(dplyr::select(dplyr::ungroup(data_density), dplyr::all_of(indep)),
                           weight = weight_density,
                           prop = TRUE, return_tibble = TRUE)
             names(grp_tbl)[1:length(indep)] <- indep
@@ -149,7 +146,7 @@ vb_discrete <-
 
             results <-
                 grp_tbl %>%
-                mutate(
+                dplyr::mutate(
                     prob = prop,
                     prop = NULL,
                     pr_turnout = stats::predict(lm_turnout, newdata = .),
@@ -232,8 +229,6 @@ wtd_table <-
              prop = FALSE, return_tibble = FALSE,
              normwt = FALSE){
 
-        require(collapse)
-
         # Factor/character check
         if(!all( sapply(list(...), is.factor)    |
                  sapply(list(...), is.character) |
@@ -271,11 +266,3 @@ wtd_table <-
         return(out)
     }
 
-
-# Test
-# filter(anes, year == 2020) %>%
-# summarize(
-#     hmisc = prop.table(questionr::wtd.table(race, weights = weight, normwt = TRUE)),
-#     blocs = wtd_table(race, weight = weight,
-#                       na.rm = TRUE, prop = TRUE, normwt = TRUE)
-# )

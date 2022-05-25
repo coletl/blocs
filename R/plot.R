@@ -19,8 +19,6 @@ plot_vbdiff <-
              discrete = length(unique(vbdiff[[x]])) < 20
              ){
 
-    require(ggplot2)
-
     ci <- !missing(ymin_col) & !missing(ymax_col)
 
     if(length(x_col) > 1) stop("Choose one independent variable to plot.")

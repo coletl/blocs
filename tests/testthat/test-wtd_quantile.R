@@ -1,4 +1,4 @@
-test_that("equivalent to reldist::wtd.quantile", {
+test_that("roughly equivalent to reldist::wtd.quantile", {
 
     vec <- rnorm(1e3, sd = 100)
     weights <- abs(rnorm(1e3))
@@ -11,7 +11,7 @@ test_that("equivalent to reldist::wtd.quantile", {
         unname(wtd_quantile(x = vec, probs, weight = weights)),
         unname(reldist::wtd.quantile(vec, q = probs, weight = weights)),
 
-        #### TOLERANCE TOO HIGH ####
+        #### TOLERANCE TOO HIGH? ####
         tolerance = 0.01
         )
     }

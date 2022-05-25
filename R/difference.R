@@ -16,14 +16,11 @@
 #'
 #' @return A \code{vbdiff} object.
 #'
-#' @import ggplot2
-#' @import dplyr
+#' @importFrom dplyr %>%
 #'
 #' @export
 
 vb_difference <- function(vbdf, diff_col, sort_col = "year"){
-
-    require(dplyr)
 
     stopifnot(length(sort_col) == 1)
     check_vbdf(vbdf)

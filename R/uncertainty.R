@@ -54,7 +54,6 @@ vb_uncertainty.vbdf <-
              low_ci = 0.025, high_ci = 0.975,
              bin_col){
 
-        require(dplyr)
         if(missing(estimates)) stop("Missing required argument estimates")
 
         # check_vbdiff(vbdiff)
@@ -79,13 +78,13 @@ vb_uncertainty.vbdf <-
             uncertainty_summary <-
                 # For each subgroup, calculate summary stats across iterations
                 vbdf %>%
-                group_by(across(all_of(c(bin_col)))) %>%
-                summarize(
-                    across(all_of(estimates),
+                dplyr::group_by(dplyr::across(dplyr::all_of(c(bin_col)))) %>%
+                dplyr::summarize(
+                    dplyr::across(dplyr::all_of(estimates),
                            .fns = funcs
                     ),
                     # subtract the original data, resample == resample-0
-                    boot_iters  = n_distinct(setdiff(resample, "resample-0"))
+                    boot_iters  = dplyr::n_distinct(setdiff(resample, "resample-0"))
                 )
         }
 
@@ -96,21 +95,21 @@ vb_uncertainty.vbdf <-
 
                 vbdf %>%
                 # Begin by integrating estimates within bin and iteration
-                group_by(across(all_of(c("resample", bin_col)))) %>%
+                dplyr::group_by(dplyr::across(dplyr::all_of(c("resample", bin_col)))) %>%
 
-                summarize(
-                    across(all_of(estimates),
+                dplyr::summarize(
+                    dplyr::across(dplyr::all_of(estimates),
                            sum),
                 ) %>%
 
                 # For each subgroup, calculate summary stats across iterations
-                group_by(across(all_of(c(bin_col)))) %>%
-                summarize(
-                    across(all_of(estimates),
+                dplyr::group_by(dplyr::across(dplyr::all_of(c(bin_col)))) %>%
+                dplyr::summarize(
+                    dplyr::across(dplyr::all_of(estimates),
                            .fns = funcs
                     ),
                     # subtract the original data, resample == resample-0
-                    boot_iters  = n_distinct(setdiff(resample, "resample-0"))
+                    boot_iters  = dplyr::n_distinct(setdiff(resample, "resample-0"))
                 )
         }
 
@@ -119,10 +118,10 @@ vb_uncertainty.vbdf <-
             uncertainty_summary <-
                 vbdf %>%
                 # Across iterations, calculate summary stats
-                group_by(across(all_of(c(bloc_var)))) %>%
+                dplyr::group_by(dplyr::across(dplyr::all_of(c(bloc_var)))) %>%
 
-                summarize(
-                    across(all_of(estimates),
+                dplyr::summarize(
+                    dplyr::across(dplyr::all_of(estimates),
                            .fns = funcs
                     ),
                     # subtract the original data, resample == resample-0
@@ -156,7 +155,6 @@ vb_uncertainty.vbdiff <-
              funcs = c("original", "mean", "median", "low", "high"),
              low_ci = 0.025, high_ci = 0.975){
 
-        require(dplyr)
         if(missing(estimates)) stop("Missing required argument estimates")
 
         type <- match.arg(type)
