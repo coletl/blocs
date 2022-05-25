@@ -3,10 +3,11 @@
 #'
 #' @rdname plot_vbdiff
 #' @param vbdiff a data.frame of year-to-year differences in the format of the output from \link{vb_difference}.
-#' @param x      string naming the column to plot on the x axis.
-#' @param y      string naming the column to plot on the y axis.
-#' @param ymin   string naming the column to plot as the lower bound of the confidence interval.
-#' @param ymax   string naming the column to plot as the upper bound of the confidence interval.
+#' @param x_col      string naming the column to plot on the x axis.
+#' @param y_col      string naming the column to plot on the y axis.
+#' @param ymin_col   string naming the column to plot as the lower bound of the confidence interval.
+#' @param ymax_col   string naming the column to plot as the upper bound of the confidence interval.
+#' @param discrete logical indicating whether voting blocs are defined along a discrete (not continuous) variable.
 #'
 #' @import ggplot2
 #'
@@ -14,26 +15,26 @@
 #' @export
 #'
 plot_vbdiff <-
-    function(vbdiff, x = get_bloc_var(vbdiff), y, ymin, ymax,
+    function(vbdiff, x_col = get_bloc_var(vbdiff), y_col, ymin_col, ymax_col,
              discrete = length(unique(vbdiff[[x]])) < 20
              ){
 
     require(ggplot2)
 
-    ci <- !missing(ymin) & !missing(ymax)
+    ci <- !missing(ymin_col) & !missing(ymax_col)
 
-    if(length(x) > 1) stop("Choose one independent variable to plot.")
+    if(length(x_col) > 1) stop("Choose one independent variable to plot.")
 
     out <-
         ggplot(vbdiff) +
-        aes(x = .data[[x]], y = .data[[y]]) +
+        aes(x = .data[[x_col]], y = .data[[y_col]]) +
         geom_hline(yintercept = 0) +
         theme_bw()
 
     out <- if(discrete) out + geom_point() else out + geom_line()
 
     if(ci) {
-        out <- out + aes(ymin = .data[[ymin]], ymax = .data[[ymax]])
+        out <- out + aes(ymin = .data[[ymin_col]], ymax = .data[[ymax_col]])
         if(discrete) out <- out + geom_pointrange()
         else         out <- out + geom_ribbon(alpha = 0.3)
     }

@@ -18,6 +18,8 @@ wtd_table(
 
 \item{weight}{optional vector of weights. The default uses uniform weights of 1.}
 
+\item{na.rm}{logical, whether to remove NA values.}
+
 \item{prop}{logical, whether to return proportions or counts. Default returns counts.}
 
 \item{return_tibble}{logical, whether to return a tibble or named vector.}

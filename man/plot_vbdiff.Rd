@@ -7,32 +7,34 @@
 \usage{
 plot_vbdiff(
   vbdiff,
-  x = get_bloc_var(vbdiff),
-  y,
-  ymin,
-  ymax,
+  x_col = get_bloc_var(vbdiff),
+  y_col,
+  ymin_col,
+  ymax_col,
   discrete = length(unique(vbdiff[[x]])) < 20
 )
 
 \method{plot}{vbdiff}(
   vbdiff,
-  x = get_bloc_var(vbdiff),
-  y,
-  ymin,
-  ymax,
+  x_col = get_bloc_var(vbdiff),
+  y_col,
+  ymin_col,
+  ymax_col,
   discrete = length(unique(vbdiff[[x]])) < 20
 )
 }
 \arguments{
 \item{vbdiff}{a data.frame of year-to-year differences in the format of the output from \link{vb_difference}.}
 
-\item{x}{string naming the column to plot on the x axis.}
+\item{x_col}{string naming the column to plot on the x axis.}
 
-\item{y}{string naming the column to plot on the y axis.}
+\item{y_col}{string naming the column to plot on the y axis.}
 
-\item{ymin}{string naming the column to plot as the lower bound of the confidence interval.}
+\item{ymin_col}{string naming the column to plot as the lower bound of the confidence interval.}
 
-\item{ymax}{string naming the column to plot as the upper bound of the confidence interval.}
+\item{ymax_col}{string naming the column to plot as the upper bound of the confidence interval.}
+
+\item{discrete}{logical indicating whether voting blocs are defined along a discrete (not continuous) variable.}
 }
 \description{
 Plot voting blocs' year-to-year difference

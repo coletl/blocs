@@ -62,15 +62,3 @@ vb_difference <- function(vbdf, diff_col, sort_col = "year"){
     return(out)
 }
 
-
-#' Calculate hypothetical bloc-contribution differences
-#' @param x,y       two sets of vbdf objects with matching column names
-#' @param diff_col  character vector naming the column(s) in \code{vbdf} with
-#'   which to compute differences.
-#' @param sort_col  character vector naming the column(s) in \code{vbdf} to use
-#'   for sorting before calling \link[base]{diff}.
-
-
-vb_hypothetical <- function(x, y, estimates){
-
-}

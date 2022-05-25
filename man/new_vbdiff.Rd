@@ -8,9 +8,14 @@ Constructor for class vbdiff}
 new_vbdiff(x, bloc_var, var_type, diff_col)
 }
 \arguments{
+\item{x}{a data.frame of voting-bloc differences}
+
 \item{bloc_var}{string, the name of the variable that defines the voting blocs}
 
 \item{var_type}{string, the type of varialbe, discrete or continuous}
+
+\item{diff_col}{character vector naming the column(s) in \code{vbdf} with
+which to compute differences.}
 }
 \description{
 vbdiff class and methods

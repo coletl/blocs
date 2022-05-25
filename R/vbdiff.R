@@ -2,9 +2,9 @@
 
 #' Constructor for class vbdiff
 #'
-#' @param x
+#' @param x a data.frame of voting-bloc differences
 #' @inheritParams vbdf
-#' @param diff_col
+#' @inheritParams vb_difference
 
 new_vbdiff <- function(x, bloc_var, var_type, diff_col){
     stopifnot(is.data.frame(x))

@@ -219,6 +219,7 @@ vb_discrete <-
 #'
 #' @param ...     vectors of class factor or character, or a list/data.frame of such vectors.
 #' @param weight  optional vector of weights. The default uses uniform weights of 1.
+#' @param na.rm   logical, whether to remove NA values.
 #' @param prop    logical, whether to return proportions or counts. Default returns counts.
 #' @param return_tibble    logical, whether to return a tibble or named vector.
 #' @param normwt           logical, whether to normalize weights such that they sum to 1.
