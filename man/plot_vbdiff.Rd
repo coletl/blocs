@@ -11,7 +11,7 @@ plot_vbdiff(
   y_col,
   ymin_col,
   ymax_col,
-  discrete = length(unique(vbdiff[[x]])) < 20
+  discrete = length(unique(vbdiff[[x_col]])) < 20
 )
 
 \method{plot}{vbdiff}(
@@ -20,7 +20,7 @@ plot_vbdiff(
   y_col,
   ymin_col,
   ymax_col,
-  discrete = length(unique(vbdiff[[x]])) < 20
+  discrete = length(unique(vbdiff[[x_col]])) < 20
 )
 }
 \arguments{

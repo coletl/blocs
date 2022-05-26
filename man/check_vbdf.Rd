@@ -8,6 +8,8 @@ check_vbdf(x, tol = sqrt(.Machine$double.eps))
 }
 \arguments{
 \item{x}{object to check}
+
+\item{tol}{tolerance used when checking bounds of net Republican votes}
 }
 \description{
 Validator for class vbdf

@@ -26,7 +26,7 @@
 #'   estimation. The default `NULL` is equivalent to 0 and does not estimate
 #'   uncertainty.
 #' @param verbose        logical, whether to print iteration number.
-#' @param check_discrere logical, whether to check if \code{indep} is a discrete variable.
+#' @param check_discrete logical, whether to check if \code{indep} is a discrete variable.
 #'
 #' @return A \code{vbdf} object.
 #' @importFrom dplyr %>%

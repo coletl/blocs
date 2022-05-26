@@ -16,7 +16,7 @@
 #'
 plot_vbdiff <-
     function(vbdiff, x_col = get_bloc_var(vbdiff), y_col, ymin_col, ymax_col,
-             discrete = length(unique(vbdiff[[x]])) < 20
+             discrete = length(unique(vbdiff[[x_col]])) < 20
              ){
 
     ci <- !missing(ymin_col) & !missing(ymax_col)

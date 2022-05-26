@@ -54,7 +54,7 @@ uncertainty.}
 
 \item{verbose}{logical, whether to print iteration number.}
 
-\item{check_discrere}{logical, whether to check if \code{indep} is a discrete variable.}
+\item{check_discrete}{logical, whether to check if \code{indep} is a discrete variable.}
 }
 \value{
 A \code{vbdf} object.

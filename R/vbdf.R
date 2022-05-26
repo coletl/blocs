@@ -26,6 +26,7 @@ new_vbdf <- function(x, bloc_var = character(),
 #' Validator for class vbdf
 #'
 #' @param x object to check
+#' @param tol tolerance used when checking bounds of net Republican votes
 
 check_vbdf <- function(x, tol = sqrt(.Machine$double.eps)){
 
@@ -93,24 +94,3 @@ vbdf <-
 
         return(vbdf)
     }
-
-# vbdf methods ----
-
-# #' @export group_by.vbdf
-# #' @export
-#
-# group_by.vbdf <- function(.data, ..., .add = FALSE,
-#                           .drop = group_by_drop_default(.data)){
-#
-#     bloc_var <- get_bloc_var(.data)
-#     var_type <- get_var_type(.data)
-#
-#     vbdf_grp <- dplyr:::group_by.data.frame(.data, ..., .add = .add, .drop = .drop)
-#
-#
-#     out <- vbdf(vbdf_grp,
-#                 bloc_var = bloc_var, var_type = var_type)
-#
-#     return(out)
-# }
-#
