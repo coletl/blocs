@@ -34,7 +34,7 @@
 #'   estimation. The default `NULL` is equivalent to 0 and does not estimate
 #'   uncertainty.
 #' @param verbose    logical, whether to print iteration number.
-#' @param ...        further arguments to pass to \link[ks]{kde}.
+#' @param ...        further arguments to pass to \link[ks]{kde} for density estimation.
 #'
 #' @return A \code{vbdf} object.
 #'
@@ -45,7 +45,7 @@ vb_continuous <-
              data_density = data, data_turnout = data, data_vote = data,
              indep, dv_turnout, dv_voterep, dv_votedem,
              weight = NULL, min_val = NULL, max_val = NULL, n_points = 100,
-             boot_iters = FALSE, verbose = FALSE){
+             boot_iters = FALSE, verbose = FALSE, ...){
 
         if(is_grouped_df(data_density))
             stop("Density estimation does not permit grouped data frames. Please use split-apply-combine.")
@@ -266,7 +266,8 @@ estimate_density <- function(x, min, max, n_points = 100, w, ...){
 
 #' Weighted quantiles ' ' This function calls \link[collapse]{fnth} repeatedly
 #' over a vector of probabilities to produce output like \link[stats]{quantile}.
-#' Fast, with minimal dependencies, but does not accept negative weights.
+#' This function is fast, with minimal dependencies, but does not accept negative weights.
+#' Importantly, this function does not call Hmisc::wtd.quantile, which fails for non-integer weights.
 
 #' @param x      numeric vector.
 #' @param probs  numeric vector of probabilities.

@@ -1,18 +1,37 @@
-test_that("roughly equivalent to reldist::wtd.quantile", {
+source("../wtd_quantile/andrey_wquantile.R")
 
-    vec <- rnorm(1e3, sd = 100)
-    weights <- abs(rnorm(1e3))
+# Critical bug in Hmisc::wtd.quantile when used with non-integer weights:
+# https://github.com/harrelfe/Hmisc/issues/97
 
-    #### reldist does not return min and max for 0, 1 ####
-    # probs <- seq(0, 1, 0.2)
-    probs <- seq(0.2, 0.8, 0.2)
+# Set testing parameters
+
+# This seed ruins whdquantile for prob = 1
+# set.seed(575)
+
+set.seed(1234)
+
+n <- 1e5
+vec <- rnorm(n, sd = 100)
+weights <- abs(rnorm(n))
+
+probs <- seq(0, 1, 0.2)
+
+all.equal(
+    unname(wtd_quantile(x = vec, probs, weights)),
+    unname(whdquantile(x = vec, probs, weights))
+)
+
+# Tests
+test_that("roughly equivalent to andrey's H-D quantile", {
+    probs <- seq(0, 1, 0.2)
 
     expect_equal(
         unname(wtd_quantile(x = vec, probs, weight = weights)),
-        unname(reldist::wtd.quantile(vec, q = probs, weight = weights)),
+        unname(whdquantile(vec, probs, weights)),
 
-        #### TOLERANCE TOO HIGH? ####
-        tolerance = 0.01
+        tolerance = 0.001
         )
     }
 )
+
+

@@ -18,7 +18,8 @@ vb_continuous(
   max_val = NULL,
   n_points = 100,
   boot_iters = FALSE,
-  verbose = FALSE
+  verbose = FALSE,
+  ...
 )
 }
 \arguments{
@@ -67,7 +68,7 @@ uncertainty.}
 
 \item{verbose}{logical, whether to print iteration number.}
 
-\item{...}{further arguments to pass to \link[ks]{kde}.}
+\item{...}{further arguments to pass to \link[ks]{kde} for density estimation.}
 }
 \value{
 A \code{vbdf} object.

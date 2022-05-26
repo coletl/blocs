@@ -1,48 +1,7 @@
-# Andrey functions ----
-# source: https://aakinshin.net/posts/weighted-quantiles/
-# Weighted generic quantile estimator
-wquantile.generic <- function(x, probs, cdf.gen, weights = NA) {
-    n <- length(x)
-    if (any(is.na(weights)))
-        weights <- rep(1 / n, n)
-    nw <- sum(weights)^2 / sum(weights^2) # Kish's effective sample size
-
-    indexes <- order(x)
-    x <- x[indexes]
-    weights <- weights[indexes]
-
-    weights <- weights / sum(weights)
-    cdf.probs <- cumsum(c(0, weights))
-
-    sapply(probs, function(p) {
-        cdf <- cdf.gen(nw, p)
-        q <- cdf(cdf.probs)
-        w <- tail(q, -1) - head(q, -1)
-        sum(w * x)
-    })
-}
-
-# Weighted Harrell-Davis quantile estimator
-whdquantile <- function(x, probs, weights = NA) {
-    cdf.gen <- function(n, p) return(function(cdf.probs) {
-        pbeta(cdf.probs, (n + 1) * p, (n + 1) * (1 - p))
-    })
-    wquantile.generic(x, probs, cdf.gen, weights)
-}
-
-# Weighted Type 7 quantile estimator
-wquantile <- function(x, probs, weights = NA) {
-    cdf.gen <- function(n, p) return(function(cdf.probs) {
-        h <- p * (n - 1) + 1
-        u <- pmax((h - 1) / n, pmin(h / n, cdf.probs))
-        u * n - h + 1
-    })
-    wquantile.generic(x, probs, cdf.gen, weights)
-}
-
-#### Testing ####
-# Code adapted from Michael Chirico:
+# Testing, plotting code adapted from Michael Chirico:
 # https://stats.stackexchange.com/questions/373269/why-does-this-simple-weighted-quantile-differ-from-hmiscwtd-quantile-which-me
+
+source("tests/wtd_quantile/andrey_wquantile.R")
 
 set.seed(3049)
 p = seq(0, 1, length.out = 100)
@@ -57,7 +16,6 @@ for (nn in 10^(2:5)) {
     add_x = nn %in% c(1000, 10000)
     add_y = nn %in% c(10, 1000)
     matplot(p, cbind(sapply(p, blocs::wtd_quantile, x = x, weight = w),
-                     sapply(p, Hmisc::wtd.quantile, x = x, w = w),
                      # sapply(p, wquantile.generic, x = x, w = w),
                      sapply(p, whdquantile, x = x, w = w),
                      sapply(p, wquantile, x = x, w = w),

@@ -4,7 +4,8 @@
 \alias{wtd_quantile}
 \title{Weighted quantiles ' ' This function calls \link[collapse]{fnth} repeatedly
 over a vector of probabilities to produce output like \link[stats]{quantile}.
-Fast, with minimal dependencies, but does not accept negative weights.}
+This function is fast, with minimal dependencies, but does not accept negative weights.
+Importantly, this function does not call Hmisc::wtd.quantile, which fails for non-integer weights.}
 \usage{
 wtd_quantile(x, probs = seq(0, 1, 0.25), weight, na.rm = FALSE, ...)
 }
@@ -22,5 +23,6 @@ wtd_quantile(x, probs = seq(0, 1, 0.25), weight, na.rm = FALSE, ...)
 \description{
 Weighted quantiles ' ' This function calls \link[collapse]{fnth} repeatedly
 over a vector of probabilities to produce output like \link[stats]{quantile}.
-Fast, with minimal dependencies, but does not accept negative weights.
+This function is fast, with minimal dependencies, but does not accept negative weights.
+Importantly, this function does not call Hmisc::wtd.quantile, which fails for non-integer weights.
 }
