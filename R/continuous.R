@@ -284,15 +284,20 @@ wtd_quantile <- function(x, probs = seq(0, 1, 0.25), weight, na.rm = FALSE, ...)
     probs_tags <- paste0(probs * 100, "%")
 
     # collapse::fnth doesn't allow 0 or 1 probabilities
-    if(0 %in% probs) probs[probs == 0] <- .Machine$double.xmin
-    if(1 %in% probs) probs[probs == 1] <- 1 - .Machine$double.xmin
+    probs0_ind <- which(probs == 0)
+    probs1_ind <- which(probs == 1)
 
+    probs[c(probs0_ind, probs1_ind)] <- 0.5
 
     out <-
         vapply(X = probs, FUN.VALUE = double(1),
                FUN = function(p) collapse::fnth(x, w = weight, n = p,
                                                 na.rm = na.rm, ...))
+    out[probs0_ind] <- collapse::fmin(x)
+    out[probs1_ind] <- collapse::fmax(x)
+
     names(out) <- probs_tags
+
 
     return(out)
 
