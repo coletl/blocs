@@ -1,7 +1,7 @@
 Package: blocs
 Type: Package
 Title: Estimate and Visualize Voting Blocs' Partisan Contributions
-Version: 0.0.0.9003
+Version: 0.0.0.9004
 Author: Authors@R: c(
     person("Will", "Marble", 
            email = "wmarble@princeton.edu", 
