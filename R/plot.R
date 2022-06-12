@@ -3,10 +3,10 @@
 #'
 #' @rdname plot_vbdiff
 #' @param vbdiff a data.frame of year-to-year differences in the format of the output from \link{vb_difference}.
-#' @param x_col      string naming the column to plot on the x axis.
-#' @param y_col      string naming the column to plot on the y axis.
-#' @param ymin_col   string naming the column to plot as the lower bound of the confidence interval.
-#' @param ymax_col   string naming the column to plot as the upper bound of the confidence interval.
+#' @param x_col      string naming the column that defines voting blocs.
+#' @param y_col      string naming the column of point estimates.
+#' @param ymin_col   string naming the column to plot as the lower bound of the confidence interval. Valid only after calculating bootstrapped uncertainty. See \link{vb_uncertainty}.
+#' @param ymax_col   string naming the column to plot as the upper bound of the confidence interval. Valid only after calculating bootstrapped uncertainty. See \link{vb_uncertainty}.
 #' @param discrete logical indicating whether voting blocs are defined along a discrete (not continuous) variable.
 #'
 #' @import ggplot2
@@ -15,7 +15,8 @@
 #' @export
 #'
 plot_vbdiff <-
-    function(vbdiff, x_col = get_bloc_var(vbdiff), y_col, ymin_col, ymax_col,
+    function(vbdiff, x_col = get_bloc_var(vbdiff),
+             y_col, ymin_col, ymax_col,
              discrete = length(unique(vbdiff[[x_col]])) < 20
              ){
 

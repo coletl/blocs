@@ -26,13 +26,13 @@ plot_vbdiff(
 \arguments{
 \item{vbdiff}{a data.frame of year-to-year differences in the format of the output from \link{vb_difference}.}
 
-\item{x_col}{string naming the column to plot on the x axis.}
+\item{x_col}{string naming the column that defines voting blocs.}
 
-\item{y_col}{string naming the column to plot on the y axis.}
+\item{y_col}{string naming the column of point estimates.}
 
-\item{ymin_col}{string naming the column to plot as the lower bound of the confidence interval.}
+\item{ymin_col}{string naming the column to plot as the lower bound of the confidence interval. Valid only after calculating bootstrapped uncertainty. See \link{vb_uncertainty}.}
 
-\item{ymax_col}{string naming the column to plot as the upper bound of the confidence interval.}
+\item{ymax_col}{string naming the column to plot as the upper bound of the confidence interval. Valid only after calculating bootstrapped uncertainty. See \link{vb_uncertainty}.}
 
 \item{discrete}{logical indicating whether voting blocs are defined along a discrete (not continuous) variable.}
 }
