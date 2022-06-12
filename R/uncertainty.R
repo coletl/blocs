@@ -49,7 +49,8 @@ vb_uncertainty <- function(object, type, estimates, ...) UseMethod("vb_uncertain
 
 vb_uncertainty.vbdf <-
     function(vbdf, type = c("continuous", "binned", "discrete"),
-             estimates, na.rm = FALSE,
+             estimates = c("prob", "pr_turnout", "pr_voterep", "pr_votedem", "net_rep"),
+             na.rm = FALSE,
              funcs = c("original", "mean", "median", "low", "high"),
              low_ci = 0.025, high_ci = 0.975,
              bin_col){
@@ -72,62 +73,62 @@ vb_uncertainty.vbdf <-
                 high     = ~ quantile(.x[resample != "resample-0"], prob = high_ci, na.rm = na.rm)
             )[funcs]
 
+        switch(type,
+               discrete =
+                   {
+                       uncertainty_summary <-
+                           # For each subgroup, calculate summary stats across iterations
+                           vbdf %>%
+                           dplyr::group_by(dplyr::across(dplyr::all_of(c(dplyr::group_vars(vbdf), bloc_var)))) %>%
+                           dplyr::summarize(
+                               dplyr::across(dplyr::all_of(estimates),
+                                             .fns = funcs
+                               ),
+                               # subtract the original data, resample == resample-0
+                               boot_iters  = dplyr::n_distinct(setdiff(resample, "resample-0"))
+                           )
+                   },
+               binned =
+                   {
+                       if(missing(bin_col)) stop("Missing required argument bin_col")
 
-        if(type == "discrete"){
+                       uncertainty_summary <-
 
-            uncertainty_summary <-
-                # For each subgroup, calculate summary stats across iterations
-                vbdf %>%
-                dplyr::group_by(dplyr::across(dplyr::all_of(c(bin_col)))) %>%
-                dplyr::summarize(
-                    dplyr::across(dplyr::all_of(estimates),
-                           .fns = funcs
-                    ),
-                    # subtract the original data, resample == resample-0
-                    boot_iters  = dplyr::n_distinct(setdiff(resample, "resample-0"))
-                )
-        }
+                           vbdf %>%
+                           # Begin by integrating estimates within bin and iteration
+                           dplyr::group_by(dplyr::across(dplyr::all_of(c("resample", dplyr::group_vars(vbdf), bin_col)))) %>%
 
-        if(type == "binned"){
-            if(missing(bin_col)) stop("Missing required argument bin_col")
+                           dplyr::summarize(
+                               dplyr::across(dplyr::all_of(estimates),
+                                             sum),
+                           ) %>%
 
-            uncertainty_summary <-
+                           # For each subgroup, calculate summary stats across iterations
+                           dplyr::group_by(dplyr::across(dplyr::all_of(c(dplyr::group_vars(vbdf), bin_col)))) %>%
+                           dplyr::summarize(
+                               dplyr::across(dplyr::all_of(estimates),
+                                             .fns = funcs
+                               ),
+                               # subtract the original data, resample == resample-0
+                               boot_iters  = dplyr::n_distinct(setdiff(resample, "resample-0"))
+                           )
+                   },
+               continuous =
+                   {
+                       uncertainty_summary <-
+                           vbdf %>%
+                           # Across iterations, calculate summary stats
+                           dplyr::group_by(dplyr::across(dplyr::all_of(c(dplyr::group_vars(vbdf), bloc_var)))) %>%
 
-                vbdf %>%
-                # Begin by integrating estimates within bin and iteration
-                dplyr::group_by(dplyr::across(dplyr::all_of(c("resample", bin_col)))) %>%
-
-                dplyr::summarize(
-                    dplyr::across(dplyr::all_of(estimates),
-                           sum),
-                ) %>%
-
-                # For each subgroup, calculate summary stats across iterations
-                dplyr::group_by(dplyr::across(dplyr::all_of(c(bin_col)))) %>%
-                dplyr::summarize(
-                    dplyr::across(dplyr::all_of(estimates),
-                           .fns = funcs
-                    ),
-                    # subtract the original data, resample == resample-0
-                    boot_iters  = dplyr::n_distinct(setdiff(resample, "resample-0"))
-                )
-        }
-
-        if(type == "continuous"){
-
-            uncertainty_summary <-
-                vbdf %>%
-                # Across iterations, calculate summary stats
-                dplyr::group_by(dplyr::across(dplyr::all_of(c(bloc_var)))) %>%
-
-                dplyr::summarize(
-                    dplyr::across(dplyr::all_of(estimates),
-                           .fns = funcs
-                    ),
-                    # subtract the original data, resample == resample-0
-                    boot_iters  = n_distinct(setdiff(resample, "resample-0"))
-                )
-        }
+                           dplyr::summarize(
+                               dplyr::across(dplyr::all_of(estimates),
+                                             .fns = funcs
+                               ),
+                               # subtract the original data, resample == resample-0
+                               boot_iters  = n_distinct(setdiff(resample, "resample-0"))
+                           )
+                   }
+               )
 
         # Use custom class to protect attributes from dplyr verbs
         out <- new_vbdf(uncertainty_summary,
@@ -171,60 +172,61 @@ vb_uncertainty.vbdiff <-
             )[funcs]
 
 
-        if(type == "discrete"){
+        switch(type,
+               discrete =
+                   {
+                       uncertainty_summary <-
+                           # For each subgroup, calculate summary stats across iterations
+                           vbdiff %>%
+                           group_by(across(all_of(c("comp", bloc_var)))) %>%
+                           summarize(
+                               across(all_of(estimates),
+                                      .fns = funcs
+                               ),
+                               boot_iters  = n_distinct(resample)
+                           )
+                   },
+               binned =
+                   {
+                       if(missing(bin_col)) stop("Missing required argument bin_col")
 
-            uncertainty_summary <-
-                # For each subgroup, calculate summary stats across iterations
-                vbdiff %>%
-                group_by(across(all_of(c("comp", bloc_var)))) %>%
-                summarize(
-                    across(all_of(estimates),
-                           .fns = funcs
-                    ),
-                    boot_iters  = n_distinct(resample)
-                )
-        }
+                       uncertainty_summary <-
 
-        if(type == "binned"){
+                           vbdiff %>%
+                           # Begin by integrating estimates within bins and iteration
+                           group_by(across(all_of(c("comp", "resample", bin_col)))) %>%
 
-            if(missing(bin_col)) stop("Missing required argument bin_col")
+                           summarize(
+                               across(all_of(estimates),
+                                      sum),
+                           ) %>%
 
-            uncertainty_summary <-
+                           # For each subgroup, calculate summary stats across iterations
+                           group_by(across(all_of(c("comp", bin_col)))) %>%
+                           summarize(
+                               across(all_of(estimates),
+                                      .fns = funcs
+                               ),
+                               boot_iters  = n_distinct(resample)
+                           )
+                   },
 
-                vbdiff %>%
-                # Begin by integrating estimates within bins and iteration
-                group_by(across(all_of(c("comp", "resample", bin_col)))) %>%
+               continuous =
+                   {
 
-                summarize(
-                    across(all_of(estimates),
-                           sum),
-                ) %>%
+                       uncertainty_summary <-
+                           vbdiff %>%
+                           # Across iterations, calculate summary stats
+                           group_by(across(all_of(c("comp", bloc_var)))) %>%
 
-                # For each subgroup, calculate summary stats across iterations
-                group_by(across(all_of(c("comp", bin_col)))) %>%
-                summarize(
-                    across(all_of(estimates),
-                           .fns = funcs
-                    ),
-                    boot_iters  = n_distinct(resample)
-                )
-        }
-
-
-        if(type == "continuous"){
-
-            uncertainty_summary <-
-                vbdiff %>%
-                # Across iterations, calculate summary stats
-                group_by(across(all_of(c("comp", bloc_var)))) %>%
-
-                summarize(
-                    across(all_of(estimates),
-                           .fns = funcs
-                    ),
-                    boot_iters  = n_distinct(resample)
-                )
-        }
+                           summarize(
+                               across(all_of(estimates),
+                                      .fns = funcs
+                               ),
+                               boot_iters  = n_distinct(resample)
+                           )
+                   }
+               )
 
         # Use custom class to protect attributes from dplyr verbs
         out <-

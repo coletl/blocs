@@ -11,7 +11,7 @@ vb_uncertainty(object, type, estimates, ...)
 \method{vb_uncertainty}{vbdf}(
   vbdf,
   type = c("continuous", "binned", "discrete"),
-  estimates,
+  estimates = c("prob", "pr_turnout", "pr_voterep", "pr_votedem", "net_rep"),
   na.rm = FALSE,
   funcs = c("original", "mean", "median", "low", "high"),
   low_ci = 0.025,
