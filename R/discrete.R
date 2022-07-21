@@ -47,6 +47,17 @@ vb_discrete <-
             stop("More than 25 unique values detected in indep. If you are sure you don't want vb_continuous(), set check_discrete = FALSE.")
 
 
+        indep_lvls <-
+            lapply(indep, \(col) Reduce(union,
+                                        list(
+                                            data_density[[col]],
+                                            data_turnout[[col]],
+                                            data_vote[[col]]
+                                            )
+                                        )
+                    )
+        names(indep_lvls) <- indep
+
         stopifnot(rlang::has_name(data_density, indep))
         stopifnot(rlang::has_name(data_density, weight))
 
@@ -62,7 +73,7 @@ vb_discrete <-
         # Remove missing values like vb_continuous()
         data_density <- stats::na.omit(dplyr::select(data_density, dplyr::all_of(c(dplyr::group_vars(data_density), indep, weight))))
 
-        # Start with NULL weights, but grab the col if present
+        # Start with NULL weights = 1, but grab the col if present
         weight_density <- rep(1L, nrow(data_density))
         weight_turnout <- rep(1L, nrow(data_turnout))
         weight_vote    <- rep(1L, nrow(data_vote))
@@ -142,7 +153,19 @@ vb_discrete <-
                     )
 
             # Predict ----
-            # Predict turnout, vote choice on same X values as density estimation
+            # Predict turnout, vote choice
+
+            # With discrete indep, rare factor levels might not be resampled.
+            # Set these levels to NA in grp_tbl to avoid a predict() failure.
+            model_lvls <- lm_voterep$xlevels
+            miss_lvls  <- lapply(indep, \(var) setdiff(indep_lvls[[var]], model_lvls[[var]]))
+            names(miss_lvls) <- indep
+
+            for(col in indep)
+                data.table::set(grp_tbl,
+                                i = which(grp_tbl[[col]] == miss_lvls[[col]]),
+                                j = col, value = NA_integer_)
+
 
             results <-
                 grp_tbl %>%
@@ -265,4 +288,3 @@ wtd_table <-
 
         return(out)
     }
-
