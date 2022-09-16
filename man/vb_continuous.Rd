@@ -10,9 +10,10 @@ vb_continuous(
   data_turnout = data,
   data_vote = data,
   indep,
-  dv_turnout,
-  dv_voterep,
-  dv_votedem,
+  dv3 = NULL,
+  dv_turnout = NULL,
+  dv_voterep = NULL,
+  dv_votedem = NULL,
   weight = NULL,
   min_val = NULL,
   max_val = NULL,
@@ -23,8 +24,8 @@ vb_continuous(
 )
 }
 \arguments{
-\item{data}{default data.frame to use as the source for
-density, turnout, and vote choice data.}
+\item{data}{default data.frame to use as the source for density,
+turnout, and vote choice data.}
 
 \item{data_density}{data.frame of blocs' composition/density data. Must
 include any columns named by \code{indep} and \code{weight}.}
@@ -38,6 +39,10 @@ columns named by \code{dv_turnout}, \code{dv_voterep}, \code{dv_votedem},
 
 \item{indep}{column names of the independent variable(s) defining
 continuous voting blocs.}
+
+\item{dv3}{string, column name of the dependent variable coded as
+follows: -1 for Republican vote choice, 0 for no or third-party vote, 1 for
+Democratic vote choice}
 
 \item{dv_turnout}{string, column name of the dependent variable flagging
 voter turnout. That column must be coded {0, 1}.}
