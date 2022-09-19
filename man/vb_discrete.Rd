@@ -10,9 +10,10 @@ vb_discrete(
   data_turnout = data,
   data_vote = data,
   indep,
-  dv_turnout,
-  dv_voterep,
-  dv_votedem,
+  dv3 = NULL,
+  dv_turnout = NULL,
+  dv_voterep = NULL,
+  dv_votedem = NULL,
   weight = NULL,
   boot_iters = FALSE,
   verbose = FALSE,
@@ -37,14 +38,21 @@ columns named by \code{dv_turnout}, \code{dv_voterep}, \code{dv_votedem},
 \item{indep}{string, column name of the independent variable defining
 discrete voting blocs.}
 
+\item{dv3}{string, column name of the dependent variable coded as
+follows: -1 for Republican vote choice, 0 for no or third-party vote, 1 for
+Democratic vote choice. Leave `NULL` when providing `dv_turnout`, `dv_voterep`, AND `dv_votedem`.}
+
 \item{dv_turnout}{string, column name of the dependent variable flagging
-voter turnout. That column must be coded {0, 1}.}
+voter turnout. That column must be coded {0, 1}. Setting both `dv_turnout` and `dv3`
+fits a separate model to predict turnout by bloc.}
 
 \item{dv_voterep}{string, column name of the dependent variable flagging
-Republican vote choice.  Must be coded {0, 1} indicating Republican vote choice.}
+Republican vote choice.  Must be coded {0, 1} indicating Republican vote
+choice. Ignored when `dv3` is not `NULL`.}
 
 \item{dv_votedem}{string, column name of the dependent variable flagging
-Republican vote choice.  Must be coded {0, 1} indicating Democratic vote choice.}
+Republican vote choice.  Must be coded {0, 1} indicating Democratic vote
+choice. Ignored when `dv3` is not `NULL`.}
 
 \item{weight}{optional string naming the column of sample weights.}
 

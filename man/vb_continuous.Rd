@@ -24,39 +24,28 @@ vb_continuous(
 )
 }
 \arguments{
-\item{data}{default data.frame to use as the source for density,
-turnout, and vote choice data.}
+\item{data}{default data.frame to use as the source for
+density, turnout, and vote choice data.}
 
 \item{data_density}{data.frame of blocs' composition/density data. Must
 include any columns named by \code{indep} and \code{weight}.}
 
 \item{data_turnout}{data.frame of blocs' turnout data. Must include any
-columns named by \code{dv_turnout}, \code{indep} and \code{weight}.}
+columns named by \code{dv_turnout}, \code{indep} and
+\code{weight}.}
 
 \item{data_vote}{data.frame of blocs' vote choice data. Must include any
 columns named by \code{dv_turnout}, \code{dv_voterep}, \code{dv_votedem},
 \code{indep}, and \code{weight}.}
 
-\item{indep}{column names of the independent variable(s) defining
-continuous voting blocs.}
-
-\item{dv3}{string, column name of the dependent variable coded as
-follows: -1 for Republican vote choice, 0 for no or third-party vote, 1 for
-Democratic vote choice}
+\item{indep}{string, column name of the independent variable defining
+discrete voting blocs.}
 
 \item{dv_turnout}{string, column name of the dependent variable flagging
-voter turnout. That column must be coded {0, 1}.}
+voter turnout in \code{data_turnout}. That column must be coded 0 =  no vote, 1 = voted.
+\code{data_vote} data sets.}
 
-\item{dv_voterep}{string, column name of the dependent variable flagging
-Republican vote choice.  Must be coded {0, 1} indicating Republican vote
-choice.}
-
-\item{dv_votedem}{string, column name of the dependent variable flagging
-Republican vote choice.  Must be coded {0, 1} indicating Democratic vote
-choice.}
-
-\item{weight}{optional string naming the column of sample weights. Must
-be identical in all data sets.}
+\item{weight}{optional string naming the column of sample weights.}
 
 \item{min_val}{scalar, lower bound for density estimation. See
 \link{estimate_density}.}

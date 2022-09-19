@@ -15,18 +15,12 @@
 #'   \code{indep}, and \code{weight}.
 #' @param indep      string, column name of the independent variable defining
 #'   discrete voting blocs.
-#' @param dv3        string, column name of the dependent variable coded as
+#' @param dv_vote3        string, column name of the dependent variable coded as
 #'   follows: -1 for Democrat vote choice, 0 for no or third-party vote, 1 for
 #'   Republican vote choice. Leave `NULL` when providing `dv_turnout`, `dv_voterep`, AND `dv_votedem`.
 #' @param dv_turnout     string, column name of the dependent variable flagging
-#'   voter turnout. That column must be coded {0, 1},
-#'   with the same name in both \code{data_turnout} and \code{data_vote} data sets.
-#' @param dv_voterep     string, column name of the dependent variable flagging
-#'   Republican vote choice.  Must be coded {0, 1} indicating Republican vote
-#'   choice. Ignored when `dv3` is not `NULL`.
-#' @param dv_votedem     string, column name of the dependent variable flagging
-#'   Republican vote choice.  Must be coded {0, 1} indicating Democratic vote
-#'   choice. Ignored when `dv3` is not `NULL`.
+#'   voter turnout in \code{data_turnout}. That column must be coded 0 =  no vote, 1 = voted.
+#'   \code{data_vote} data sets.
 #' @param weight     optional string naming the column of sample weights.
 #' @param boot_iters integer, number of bootstrap iterations for uncertainty
 #'   estimation. The default `NULL` is equivalent to 0 and does not estimate
@@ -37,18 +31,13 @@
 #' @return A \code{vbdf} object.
 #' @importFrom dplyr %>%
 #'
-#' @note Especially for small voting blocs, it's possible that some resamples
-#' will not contain enough variation in voting behavior to estimate the models,
-#' In these cases, please try specifying the \code{dv3} parameter,
-#' which fits a single model to predict both Republican and Democrat vote choice.
-#'
 #' @export
 
 
 vb_discrete <-
     function(data,
              data_density = data, data_turnout = data, data_vote = data,
-             indep, dv3 = NULL,
+             indep, dv_vote3 = NULL,
              dv_turnout = NULL, dv_voterep = NULL, dv_votedem = NULL,
              weight = NULL, boot_iters = FALSE,
              verbose = FALSE, check_discrete = TRUE){
@@ -76,14 +65,14 @@ vb_discrete <-
         stopifnot(rlang::has_name(data_density, indep))
         stopifnot(rlang::has_name(data_density, weight))
 
-        stopifnot(!is.null(dv3) | length(c(dv_turnout, dv_voterep, dv_votedem)) == 3)
+        stopifnot(!is.null(dv_vote3) | length(c(dv_turnout, dv_voterep, dv_votedem)) == 3)
 
-        if(is.null(dv3)) stopifnot(rlang::has_name(data_turnout, dv_turnout))
+        if(is.null(dv_vote3)) stopifnot(rlang::has_name(data_turnout, dv_turnout))
         stopifnot(rlang::has_name(data_turnout, indep))
         stopifnot(rlang::has_name(data_turnout, weight))
 
-        if(is.null(dv3)) stopifnot(rlang::has_name(data_vote, dv_turnout))
-        if(is.null(dv3)) stopifnot(rlang::has_name(data_vote, c(dv_voterep , dv_votedem)))
+        if(is.null(dv_vote3)) stopifnot(rlang::has_name(data_vote, dv_turnout))
+        if(is.null(dv_vote3)) stopifnot(rlang::has_name(data_vote, c(dv_voterep , dv_votedem)))
         stopifnot(rlang::has_name(data_vote, indep))
         stopifnot(rlang::has_name(data_vote, weight))
 
@@ -95,6 +84,7 @@ vb_discrete <-
         weight_turnout <- rep(1L, nrow(data_turnout))
         weight_vote    <- rep(1L, nrow(data_vote))
 
+
         if(!is.null(weight)) {
             if(rlang::has_name(data_density, weight))
                 weight_density <- data_density[[weight]]
@@ -105,6 +95,15 @@ vb_discrete <-
             if(rlang::has_name(data_vote, weight))
                 weight_vote    <- data_vote[[weight]]
         }
+
+        # Check that weights greater than non-zero
+        if(
+            any(
+                weight_density <= 0,
+                weight_turnout <= 0,
+                weight_vote <= 0
+            )
+        ) stop("Weights must be greater than zero.")
 
 
         # Force independent variables to be discrete
@@ -120,9 +119,7 @@ vb_discrete <-
             data_vote %>%
             dplyr::mutate(dplyr::across(dplyr::all_of(indep), ~ as.factor(.x)))
 
-
         indep_str <- paste(indep, collapse = " * ")
-        data_vote <- dplyr::filter(data_vote, get(dv_turnout) == 1)
 
         if(boot_iters == 0){
 
@@ -136,96 +133,28 @@ vb_discrete <-
             if(any(grp_tbl$prop < 0.005))
                 warning("Extremely small voting bloc detected. Regression may fail.")
 
+            # Fit turnout model
+            form_turnout <- stats::as.formula(sprintf("%s ~ %s", dv_turnout, indep_str))
+            lm_turnout <- stats::lm(form_turnout, data = data_turnout, weight = weight_turnout)
 
-            # 3-valued DV if available (fits 1, not 3 models) ----
-            if(! is.null(dv3)){
+            # Fit vote choice
+            form_dv3 <- stats::as.formula(sprintf("%s ~ %s", dv_vote3, indep_str))
+            lm_dv3   <- stats::lm(form_dv3, data = data_vote, weight = weight_vote)
 
-                form_dv3 <- stats::as.formula(sprintf("%s ~ %s", dv3, indep_str))
-                lm_dv3   <- stats::lm(form_dv3, data = data_vote[voter_ind, ], weight = weight_vote)
+            results <-
+                grp_tbl %>%
+                dplyr::mutate(
+                    prob = prop, prop = NULL,
+                    # rounding fixes miniscule pred. probs from 0 observed turnout
+                    pr_turnout = stats::predict(lm_turnout, newdata = grp_tbl),
+                    cond_rep   = stats::predict(lm_dv3, newdata = grp_tbl),
+                    net_rep    = cond_rep * prob
+                ) %>%
+                dplyr::mutate(across(where(is.numeric), round, 10)) %>%
+                dplyr::mutate(across(where(is.numeric), unname))
 
-                results <-
-                    grp_tbl %>%
-                    dplyr::mutate(prob = prop,
-                                  prop = NULL,
-                                  cond_rep = predict(lm_dv3, newdata = grp_tbl)) %>%
-                    dplyr::mutate(net_rep = cond_rep * prob)
-
-                # Fit turnout model and predict, if column name provided
-                if(! is.null(dv_turnout)){
-                    form_turnout <- stats::as.formula(sprintf("%s ~ %s", dv_turnout, indep_str))
-                    lm_turnout <- stats::lm(form_turnout, data = data_turnout, weight = weight_turnout)
-
-                    results <- dplyr::mutate(results,
-                                             pr_turnout = stats::predict(lm_turnout, newdata = grp_tbl))
-                }
-
-            } else {
-                # 3 models, 3 DVs ----
-                # Estimate Pr(turnout | X)
-                form_turnout <- stats::as.formula(sprintf("%s ~ %s", dv_turnout, indep_str))
-
-                lm_turnout  <-
-                    stats::lm(form_turnout,
-                              data = data_turnout, weight = weight_turnout)
-
-                # Estimate Pr(vote | turnout, X)
-                voter_ind <- which(data_vote[[dv_turnout]] == 1)
-
-                # vote = Rep
-                form_voterep <- stats::as.formula(sprintf("%s ~ %s", dv_voterep, indep_str))
-
-                # vote = Dem
-                form_votedem <- stats::as.formula(sprintf("%s ~ %s", dv_votedem, indep_str))
-
-
-                lm_voterep <-
-                    tryCatch(
-                        stats::lm(form_voterep,
-                                  data = data_vote[voter_ind, ],
-                                  weight = weight_vote[voter_ind]),
-                        error = function(e) NA_integer_
-                    )
-
-                lm_votedem <-
-                    tryCatch(
-                        stats::lm(form_votedem,
-                                  data = data_vote[voter_ind, ],
-                                  weight = weight_vote[voter_ind]),
-                        error = function(e) NA_integer_
-                    )
-
-                # Predict ----
-                # Predict turnout, vote choice
-
-                # With discrete indep, rare factor levels might not be resampled.
-                # Set these levels to NA in grp_tbl to avoid a predict() failure.
-                model_lvls <- lm_voterep$xlevels
-                miss_lvls  <- lapply(indep, \(var) setdiff(indep_lvls[[var]], model_lvls[[var]]))
-                names(miss_lvls) <- indep
-
-                for(col in indep)
-                    data.table::set(grp_tbl,
-                                    i = which(grp_tbl[[col]] == miss_lvls[[col]]),
-                                    j = col, value = NA_integer_)
-
-                dplyr::mutate(grp_tbl,
-                              pr_turnout = stats::predict(lm_turnout, newdata = grp_tbl))
-
-                results <-
-
-                    dplyr::mutate(grp_tbl,
-                                  prob = prop, prop = NULL,
-                                  pr_turnout = stats::predict(lm_turnout, newdata = grp_tbl),
-                                  pr_voterep = stats::predict(lm_voterep, newdata = grp_tbl),
-                                  pr_votedem = stats::predict(lm_votedem, newdata = grp_tbl),
-
-                                  net_rep = (pr_voterep - pr_votedem) * pr_turnout * prob
-                    )
-            }
-
-            out <- vbdf(data = results,
-                        bloc_var = indep,
-                        var_type  = "discrete")
+            out <- vbdf(results, bloc_var = indep,
+                        var_type = "discrete")
 
         } else {
 
@@ -256,7 +185,7 @@ vb_discrete <-
                                 data_turnout = boot_turnout,
                                 data_vote    = boot_vote,
                                 indep = indep,
-                                dv3 = dv3,
+                                dv_vote3 = dv_vote3,
                                 dv_turnout = dv_turnout,
                                 dv_voterep = dv_voterep, dv_votedem = dv_votedem,
                                 # Weighted in resampling
@@ -277,9 +206,6 @@ vb_discrete <-
                      var_type = get_var_type(results)
                 )
         }
-
-        colnms <- c("pr_turnout", "pr_votedem", "pr_voterep", "cond_rep")
-        out <- dplyr::select(out, any_of("resample"), {indep}, prob, any_of(colnms), net_rep)
 
         return(out)
     }
