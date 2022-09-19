@@ -77,7 +77,12 @@ vb_discrete <-
         stopifnot(rlang::has_name(data_vote, weight))
 
         # Remove missing values like vb_continuous()
+        nrow_density <- nrow(data_density)
         data_density <- stats::na.omit(dplyr::select(data_density, dplyr::all_of(c(dplyr::group_vars(data_density), indep, weight))))
+
+        na_check <- nrow_density - nrow(data_density)
+        if(na_check/nrow_density > 0.05)
+            warning(sprintf("Dropped %s missing values from data_density.", na_check))
 
         # Start with NULL weights = 1, but grab the col if present
         weight_density <- rep(1L, nrow(data_density))
@@ -125,12 +130,12 @@ vb_discrete <-
 
             # Estimate Pr(X) ----
             grp_tbl <-
-                wtd_table(dplyr::select(dplyr::ungroup(data_density), dplyr::all_of(indep)),
-                          weight = weight_density,
-                          prop = TRUE, return_tibble = TRUE)
-            names(grp_tbl)[1:length(indep)] <- indep
+                dplyr::group_by(data_density, dplyr::across(dplyr::all_of(indep))) %>%
+                dplyr::count(wt = get({{weight}})) %>%
+                dplyr::ungroup() %>%
+                dplyr::mutate(prob = n / sum(n), n = NULL)
 
-            if(any(grp_tbl$prop < 0.005))
+            if(any(grp_tbl$prob < 0.005))
                 warning("Extremely small voting bloc detected. Regression may fail.")
 
             # Fit turnout model
@@ -144,12 +149,11 @@ vb_discrete <-
             results <-
                 grp_tbl %>%
                 dplyr::mutate(
-                    prob = prop, prop = NULL,
-                    # rounding fixes miniscule pred. probs from 0 observed turnout
                     pr_turnout = stats::predict(lm_turnout, newdata = grp_tbl),
                     cond_rep   = stats::predict(lm_dv3, newdata = grp_tbl),
                     net_rep    = cond_rep * prob
                 ) %>%
+                # rounding fixes miniscule pred. probs from 0 observed turnout
                 dplyr::mutate(across(where(is.numeric), round, 10)) %>%
                 dplyr::mutate(across(where(is.numeric), unname))
 
@@ -205,60 +209,6 @@ vb_discrete <-
                      bloc_var = get_bloc_var(results),
                      var_type = get_var_type(results)
                 )
-        }
-
-        return(out)
-    }
-
-#' Weighted frequency table or proportions
-#'
-#' @param ...     vectors of class factor or character, or a list/data.frame of such vectors.
-#' @param weight  optional vector of weights. The default uses uniform weights of 1.
-#' @param na.rm   logical, whether to remove NA values.
-#' @param prop    logical, whether to return proportions or counts. Default returns counts.
-#' @param return_tibble    logical, whether to return a tibble or named vector.
-#' @param normwt           logical, whether to normalize weights such that they sum to 1.
-#'
-#' @export
-
-wtd_table <-
-    function(...,
-             weight = NULL, na.rm = FALSE,
-             prop = FALSE, return_tibble = FALSE,
-             normwt = FALSE){
-
-        # Factor/character check
-        if(!all( sapply(list(...), is.factor)    |
-                 sapply(list(...), is.character) |
-                 sapply(list(...), is.list)
-        )
-        ) stop("All vector inputs must be factor or character. All subsequent arguments must be fully named.")
-
-
-        tabdf <- data.frame(...)
-        if(normwt) weight <- weight * nrow(tabdf)/sum(weight)
-
-        # Use weights if present, otherwise all 1
-        weight_vec <- if(is.null(weight)) rep.int(1L, nrow(tabdf)) else weight
-
-        if(na.rm){
-            # Remove values where any ... is NA
-            tabdf <- stats::na.omit(tabdf)
-            # Remove corresponding weights
-            na_ind <- unique(attr(tabdf, "na.action"))
-            weight_vec <- weight_vec[- na_ind]
-        }
-
-        # Sum weights within group
-        grps <- collapse::GRP(tabdf)
-        out  <- collapse::fsum(weight_vec, grps)
-
-        if(prop) out <- out / sum(out)
-
-        if(return_tibble){
-            out <- tibble::tibble(grps$groups, count = unname(out))
-
-            if(prop) names(out)[names(out) == "count"] <- "prop"
         }
 
         return(out)
