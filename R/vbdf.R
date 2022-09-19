@@ -15,7 +15,7 @@ new_vbdf <- function(x, bloc_var = character(),
     stopifnot(is.data.frame(x))
     # tibble protects attributes from dplyr verbs
     out <-
-        tibble::new_tibble(x, nrow = nrow(x), subclass = "vbdf",
+        tibble::new_tibble(x, nrow = nrow(x), class = "vbdf",
                           bloc_var = bloc_var, var_type = var_type)
 
     tibble::validate_tibble(out)

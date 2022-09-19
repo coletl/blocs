@@ -9,7 +9,7 @@
 new_vbdiff <- function(x, bloc_var, var_type, diff_col){
     stopifnot(is.data.frame(x))
 
-    out <- tibble::new_tibble(x, nrow = nrow(x), subclass = "vbdiff",
+    out <- tibble::new_tibble(x, nrow = nrow(x), class = "vbdiff",
                               bloc_var = bloc_var, var_type = var_type,
                               diff_col = diff_col)
     tibble::validate_tibble(out)
