@@ -37,8 +37,7 @@
 vb_discrete <-
     function(data,
              data_density = data, data_turnout = data, data_vote = data,
-             indep, dv_vote3 = NULL,
-             dv_turnout = NULL, dv_voterep = NULL, dv_votedem = NULL,
+             indep, dv_vote3 = NULL, dv_turnout = NULL,
              weight = NULL, boot_iters = FALSE,
              verbose = FALSE, check_discrete = TRUE){
 
@@ -47,7 +46,11 @@ vb_discrete <-
                   Please use split-apply-combine to analyze multiple years, or pass multiple column names to the `indep` parameter for multivariate blocs.")
         }
 
-        if( check_discrete & dplyr::n_distinct(dplyr::select(ungroup(data_density), dplyr::all_of(indep))) > 50)
+        stopifnot(is.data.frame(data_density))
+        stopifnot(is.data.frame(data_turnout))
+        stopifnot(is.data.frame(data_vote))
+
+        if( check_discrete & dplyr::n_distinct(dplyr::select(dplyr::ungroup(data_density), dplyr::all_of(indep))) > 50)
             stop("More than 25 unique values detected in indep. If you are sure you don't want vb_continuous(), set check_discrete = FALSE.")
 
 
@@ -99,17 +102,17 @@ vb_discrete <-
 
             if(rlang::has_name(data_vote, weight))
                 weight_vote    <- data_vote[[weight]]
+
+            # Check that weights greater than non-zero
+            if(
+                any(
+                    weight_density <= 0,
+                    weight_turnout <= 0,
+                    weight_vote <= 0
+                )
+            ) stop("Weights must be greater than zero.")
+
         }
-
-        # Check that weights greater than non-zero
-        if(
-            any(
-                weight_density <= 0,
-                weight_turnout <= 0,
-                weight_vote <= 0
-            )
-        ) stop("Weights must be greater than zero.")
-
 
         # Force independent variables to be discrete
         data_density <-
@@ -129,33 +132,90 @@ vb_discrete <-
         if(boot_iters == 0){
 
             # Estimate Pr(X) ----
-            grp_tbl <-
-                dplyr::group_by(data_density, dplyr::across(dplyr::all_of(indep))) %>%
-                dplyr::count(wt = get({{weight}})) %>%
-                dplyr::ungroup() %>%
-                dplyr::mutate(prob = n / sum(n), n = NULL)
+            if(is.null(weight)){
+                prob_tbl <-
+                    dplyr::group_by(data_density, dplyr::across(dplyr::all_of(indep))) %>%
+                    dplyr::count() %>%
+                    dplyr::ungroup() %>%
+                    dplyr::mutate(prob = n / sum(n), n = NULL)
+            } else {
+                prob_tbl <-
+                    dplyr::group_by(data_density, dplyr::across(dplyr::all_of(indep))) %>%
+                    dplyr::count(wt = if(!is.null(weight)) get({{weight}}) else NULL) %>%
+                    dplyr::ungroup() %>%
+                    dplyr::mutate(prob = n / sum(n), n = NULL)
+            }
 
-            if(any(grp_tbl$prob < 0.005))
+            if(any(prob_tbl$prob < 0.005))
                 warning("Extremely small voting bloc detected. Regression may fail.")
 
-            # Fit turnout model
-            form_turnout <- stats::as.formula(sprintf("%s ~ %s", dv_turnout, indep_str))
-            lm_turnout <- stats::lm(form_turnout, data = data_turnout, weight = weight_turnout)
+            # Weighted mean handles 0 turnout better than lm
+            if(is.null(weight)){
+                turnout_tbl  <-
+                    dplyr::group_by(data_turnout, dplyr::across(dplyr::all_of(indep))) %>%
+                    dplyr::summarize(pr_turnout = mean(get(dv_turnout),
+                                                       na.rm = TRUE))
+            } else {
+                turnout_tbl  <-
+                    dplyr::group_by(data_turnout, dplyr::across(dplyr::all_of(indep))) %>%
+                    dplyr::summarize(pr_turnout =
+                                         stats::weighted.mean(get(dv_turnout),
+                                                              w = get({{weight}}),
+                                                              na.rm = TRUE))
+            }
+
+            turnout_tbl <- left_join(prob_tbl, turnout_tbl, by = indep)
 
             # Fit vote choice
             form_dv3 <- stats::as.formula(sprintf("%s ~ %s", dv_vote3, indep_str))
-            lm_dv3   <- stats::lm(form_dv3, data = data_vote, weight = weight_vote)
+            # Use tryCatch() to return NA when a
+            lm_dv3   <-
+                tryCatch(
+                    stats::lm(form_dv3, data = data_vote, weight = weight_vote),
+                    error = function(e) NULL
+                )
 
-            results <-
-                grp_tbl %>%
-                dplyr::mutate(
-                    pr_turnout = stats::predict(lm_turnout, newdata = grp_tbl),
-                    cond_rep   = stats::predict(lm_dv3, newdata = grp_tbl),
-                    net_rep    = cond_rep * prob
-                ) %>%
-                # rounding fixes miniscule pred. probs from 0 observed turnout
-                dplyr::mutate(across(where(is.numeric), round, 10)) %>%
-                dplyr::mutate(across(where(is.numeric), unname))
+            # Model failed
+            if(is.null(lm_dv3)){
+                results <-
+                    turnout_tbl %>%
+                    dplyr::mutate(
+                        cond_rep   = NA_integer_,
+                        net_rep    = NA_integer_) %>%
+                    # rounding fixes miniscule pred. probs from 0 observed turnout
+                    dplyr::mutate(across(where(is.numeric), round, 10)) %>%
+                    dplyr::mutate(across(where(is.numeric), unname))
+            } else {
+
+                cond_rep <- tryCatch(
+                    expr = {
+                        stats::predict(lm_dv3, newdata = turnout_tbl)
+                    },
+
+                    error = function(e){
+                        tmp_turn <- turnout_tbl
+
+                        # remove factor levels not in (prob. resampled) data
+                        miss_ind <- which( ! interaction(tmp_turn[indep]) %in%
+                                               interaction(data_vote[indep]))
+                        miss_lvls <- tmp_turn[miss_ind, ]
+                        tmp_turn[miss_ind, indep] <- NA_character_
+
+                        stats::predict(lm_dv3, newdata = tmp_turn)
+
+                    }
+                )
+
+                results <-
+                    turnout_tbl %>%
+                    dplyr::mutate(
+                        cond_rep   = cond_rep,
+                        net_rep    = cond_rep * prob
+                    ) %>%
+                    # rounding fixes miniscule pred. probs from 0 observed turnout
+                    dplyr::mutate(across(where(is.numeric), round, 10)) %>%
+                    dplyr::mutate(across(where(is.numeric), unname))
+            }
 
             out <- vbdf(results, bloc_var = indep,
                         var_type = "discrete")
@@ -191,7 +251,6 @@ vb_discrete <-
                                 indep = indep,
                                 dv_vote3 = dv_vote3,
                                 dv_turnout = dv_turnout,
-                                dv_voterep = dv_voterep, dv_votedem = dv_votedem,
                                 # Weighted in resampling
                                 weight = NULL,
                                 boot_iters = FALSE)

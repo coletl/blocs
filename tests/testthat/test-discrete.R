@@ -6,8 +6,8 @@ test_that("Discrete analysis runs with and without weights", {
         x_cont = 1:4,
 
         voted    = c( 0, 1,  1,  1),
-        vote_dem = c(NA, 0,  1,  1),
-        vote_rep = c(NA, 1,  0,  0),
+        # vote_dem = c(NA, 0,  1,  1),
+        # vote_rep = c(NA, 1,  0,  0),
         vote3    = c( 0, 1, -1, -1),
 
         weight = c(1.5, 2, 0.5, 0)
@@ -110,3 +110,56 @@ test_that("ANES analysis expected results", {
 
 }
 )
+
+test_that("Bootstrapping runs"){
+
+    # 2 runs on ANES 2020
+    set.seed(1)
+    vbdf_1a <- vb_discrete(anes20, indep = c("race", "educ"),
+                            dv_vote3 = "vote_pres3",
+                            dv_turnout = "voted", weight = "weight",
+                            boot_iters = 2)
+
+    set.seed(1)
+    vbdf_1b <- vb_discrete(anes20, indep = c("race", "educ"),
+                            dv_vote3 = "vote_pres3",
+                            dv_turnout = "voted", weight = "weight",
+                            boot_iters = 2)
+
+    set.seed(2)
+    vbdf_2 <- vb_discrete(anes20, indep = c("race", "educ"),
+                          dv_vote3 = "vote_pres3",
+                          dv_turnout = "voted", weight = "weight",
+                          boot_iters = 2)
+
+    expect_equal(vbdf_1a, vbdf_1b)
+    expect_false(isTRUE(all.equal(vbdf_1a, vbdf_2)))
+
+    # Many runs on toy data
+    data <- data.frame(
+        x_disc = LETTERS[1:4],
+        x_cont = 1:4,
+
+        voted    = c( 0, 1,  1,  1),
+        vote_dem = c(NA, 0,  1,  1),
+        vote_rep = c(NA, 1,  0,  0),
+        vote3    = c( 0, 1, -1, -1),
+
+        weight = c(1.5, 2, 0.5, 0.5)
+        )
+
+    set.seed(1)
+    vbdf_3 <- vb_discrete(data, indep = "x_disc",
+                          dv_turnout = "voted",
+                          dv_vote3 = "vote3",
+                          weight = "weight", boot_iters = 1e2)
+
+    set.seed(1)
+    vbdf_4 <- vb_discrete(data, indep = "x_disc",
+                          dv_turnout = "voted",
+                          dv_vote3 = "vote3",
+                          weight = "weight", boot_iters = 100)
+
+    expect_equal(vbdf_3$prob, vbdf_4$prob)
+
+}

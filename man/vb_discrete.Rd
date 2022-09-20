@@ -12,8 +12,6 @@ vb_discrete(
   indep,
   dv_vote3 = NULL,
   dv_turnout = NULL,
-  dv_voterep = NULL,
-  dv_votedem = NULL,
   weight = NULL,
   boot_iters = FALSE,
   verbose = FALSE,
