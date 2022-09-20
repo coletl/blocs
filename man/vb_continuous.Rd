@@ -10,10 +10,8 @@ vb_continuous(
   data_turnout = data,
   data_vote = data,
   indep,
-  dv3 = NULL,
+  dv_vote3 = NULL,
   dv_turnout = NULL,
-  dv_voterep = NULL,
-  dv_votedem = NULL,
   weight = NULL,
   min_val = NULL,
   max_val = NULL,
@@ -35,11 +33,14 @@ columns named by \code{dv_turnout}, \code{indep} and
 \code{weight}.}
 
 \item{data_vote}{data.frame of blocs' vote choice data. Must include any
-columns named by \code{dv_turnout}, \code{dv_voterep}, \code{dv_votedem},
-\code{indep}, and \code{weight}.}
+columns named by \code{dv_turnout}, \code{dv_vote3}, \code{indep}, and \code{weight}.}
 
 \item{indep}{string, column name of the independent variable defining
 discrete voting blocs.}
+
+\item{dv_vote3}{string, column name of the dependent variable coded as
+follows: -1 for Democrat vote choice, 0 for no or third-party vote, 1 for
+Republican vote choice.}
 
 \item{dv_turnout}{string, column name of the dependent variable flagging
 voter turnout in \code{data_turnout}. That column must be coded 0 =  no vote, 1 = voted.

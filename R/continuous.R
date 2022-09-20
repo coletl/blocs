@@ -18,8 +18,7 @@
 vb_continuous <-
     function(data,
              data_density = data, data_turnout = data, data_vote = data,
-             indep, dv3 = NULL,
-             dv_turnout = NULL, dv_voterep = NULL, dv_votedem = NULL,
+             indep, dv_vote3 = NULL, dv_turnout = NULL,
              weight = NULL, min_val = NULL, max_val = NULL, n_points = 100,
              boot_iters = FALSE, verbose = FALSE, ...){
 
@@ -28,17 +27,17 @@ vb_continuous <-
                   Please use split-apply-combine to analyze multiple years, or pass multiple column names to the `indep` parameter for multivariate blocs.")
         }
 
+        stopifnot(is.data.frame(data_density))
+        stopifnot(is.data.frame(data_turnout))
+        stopifnot(is.data.frame(data_vote))
+
         stopifnot(rlang::has_name(data_density, indep))
         stopifnot(rlang::has_name(data_density, weight))
 
-        stopifnot(!is.null(dv3) | length(c(dv_turnout, dv_voterep, dv_votedem)) == 3)
-
-        if(is.null(dv3)) stopifnot(rlang::has_name(data_turnout, dv_turnout))
+        if(is.null(dv_vote3)) stopifnot(rlang::has_name(data_turnout, dv_turnout))
         stopifnot(rlang::has_name(data_turnout, indep))
         stopifnot(rlang::has_name(data_turnout, weight))
 
-        if(is.null(dv3)) stopifnot(rlang::has_name(data_vote, dv_turnout))
-        if(is.null(dv3)) stopifnot(rlang::has_name(data_vote, c(dv_voterep , dv_votedem)))
         stopifnot(rlang::has_name(data_vote, indep))
         stopifnot(rlang::has_name(data_vote, weight))
 
@@ -99,8 +98,8 @@ vb_continuous <-
             form_turnout <- stats::as.formula(sprintf("%s ~ %s", dv_turnout, indep_str))
             gam_turnout <- mgcv::gam(form_turnout, data = data_turnout)
 
-            form_dv3 <- stats::as.formula(sprintf("%s ~ %s", dv3, indep_str))
-            gam_dv3 <- mgcv::gam(form_dv3, data = data_vote)
+            form_dv_vote3 <- stats::as.formula(sprintf("%s ~ %s", dv_vote3, indep_str))
+            gam_dv_vote3 <- mgcv::gam(form_dv_vote3, data = data_vote)
 
             ### Predict ----
             # Predict turnout, vote choice on same X values as density estimation
@@ -111,7 +110,7 @@ vb_continuous <-
                 data.frame(as.data.frame(dens_estim$x_seq),
                            prob = dens_estim$density,
                            pr_turnout = stats::predict(gam_turnout, newdata = ert),
-                           cond_rep   = stats::predict(gam_dv3, ert),
+                           cond_rep   = stats::predict(gam_dv_vote3, ert),
                            net_rep = cond_rep * prob
                            ) %>%
                 dplyr::mutate(pr_turnout = unname(pr_turnout),
@@ -150,9 +149,8 @@ vb_continuous <-
                                   data_vote    = boot_vote,
 
                                   indep = indep,
-                                  dv3 = dv3,
+                                  dv_vote3 = dv_vote3,
                                   dv_turnout = dv_turnout,
-                                  dv_voterep = dv_voterep, dv_votedem = dv_votedem,
                                   min_val = min_val, max_val = max_val,
                                   # Weighted in resampling
                                   weight = NULL, boot_iters = FALSE

@@ -11,13 +11,12 @@
 #'   columns named by \code{dv_turnout}, \code{indep} and
 #'   \code{weight}.
 #' @param data_vote      data.frame of blocs' vote choice data. Must include any
-#'   columns named by \code{dv_turnout}, \code{dv_voterep}, \code{dv_votedem},
-#'   \code{indep}, and \code{weight}.
+#'   columns named by \code{dv_turnout}, \code{dv_vote3}, \code{indep}, and \code{weight}.
 #' @param indep      string, column name of the independent variable defining
 #'   discrete voting blocs.
 #' @param dv_vote3        string, column name of the dependent variable coded as
 #'   follows: -1 for Democrat vote choice, 0 for no or third-party vote, 1 for
-#'   Republican vote choice. Leave `NULL` when providing `dv_turnout`, `dv_voterep`, AND `dv_votedem`.
+#'   Republican vote choice.
 #' @param dv_turnout     string, column name of the dependent variable flagging
 #'   voter turnout in \code{data_turnout}. That column must be coded 0 =  no vote, 1 = voted.
 #'   \code{data_vote} data sets.
@@ -68,14 +67,9 @@ vb_discrete <-
         stopifnot(rlang::has_name(data_density, indep))
         stopifnot(rlang::has_name(data_density, weight))
 
-        stopifnot(!is.null(dv_vote3) | length(c(dv_turnout, dv_voterep, dv_votedem)) == 3)
-
-        if(is.null(dv_vote3)) stopifnot(rlang::has_name(data_turnout, dv_turnout))
         stopifnot(rlang::has_name(data_turnout, indep))
         stopifnot(rlang::has_name(data_turnout, weight))
 
-        if(is.null(dv_vote3)) stopifnot(rlang::has_name(data_vote, dv_turnout))
-        if(is.null(dv_vote3)) stopifnot(rlang::has_name(data_vote, c(dv_voterep , dv_votedem)))
         stopifnot(rlang::has_name(data_vote, indep))
         stopifnot(rlang::has_name(data_vote, weight))
 
