@@ -14,6 +14,7 @@ vb_discrete(
   dv_turnout = NULL,
   weight = NULL,
   boot_iters = FALSE,
+  net_rep_only = FALSE,
   verbose = FALSE,
   check_discrete = TRUE
 )
@@ -48,6 +49,11 @@ voter turnout in \code{data_turnout}. That column must be coded 0 =  no vote, 1 
 \item{boot_iters}{integer, number of bootstrap iterations for uncertainty
 estimation. The default `NULL` is equivalent to 0 and does not estimate
 uncertainty.}
+
+\item{net_rep_only}{logical, whether to return only composition and net Republican votes.
+The default \code{FALSE} computes and returns the other components,
+turnout and vote choice. Set to \code{TRUE} to estimate a linear model.
+combining turnout and vote choice estimation.}
 
 \item{verbose}{logical, whether to print iteration number.}
 

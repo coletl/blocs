@@ -1,4 +1,4 @@
-test_that("equivalent to questionr::wtd.mean", {
+test_that("equivalent to questionr::wtd.table", {
 
     vec <- sample(letters, 100, replace = TRUE)
     vec[sample(1:100, 10)] <- NA
