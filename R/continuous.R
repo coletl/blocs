@@ -20,7 +20,7 @@ vb_continuous <-
              data_density = data, data_turnout = data, data_vote = data,
              indep, dv_vote3 = NULL, dv_turnout = NULL,
              weight = NULL, min_val = NULL, max_val = NULL, n_points = 100,
-             boot_iters = FALSE, verbose = FALSE, ...){
+             boot_iters = FALSE, verbose = FALSE, cache = FALSE, ...){
 
         if(is_grouped_df(data_density)){
             stop("Density estimation does not permit grouped data frames.\n
@@ -34,11 +34,12 @@ vb_continuous <-
         stopifnot(rlang::has_name(data_density, indep))
         stopifnot(rlang::has_name(data_density, weight))
 
-        if(is.null(dv_vote3)) stopifnot(rlang::has_name(data_turnout, dv_turnout))
         stopifnot(rlang::has_name(data_turnout, indep))
+        stopifnot(rlang::has_name(data_turnout, dv_turnout))
         stopifnot(rlang::has_name(data_turnout, weight))
 
         stopifnot(rlang::has_name(data_vote, indep))
+        stopifnot(rlang::has_name(data_vote, dv_vote3))
         stopifnot(rlang::has_name(data_vote, weight))
 
         # No missing values allowed in kde
@@ -110,10 +111,10 @@ vb_continuous <-
                 data.frame(as.data.frame(dens_estim$x_seq),
                            prob = dens_estim$density,
                            pr_turnout = stats::predict(gam_turnout, newdata = ert),
-                           cond_rep   = stats::predict(gam_dv_vote3, ert),
-                           net_rep = cond_rep * prob
+                           cond_rep   = stats::predict(gam_dv_vote3, ert)
                            ) %>%
-                dplyr::mutate(pr_turnout = unname(pr_turnout),
+                dplyr::mutate(net_rep = cond_rep * prob,
+                              pr_turnout = unname(pr_turnout),
                               cond_rep = unname(cond_rep),
                               net_rep = unname(net_rep))
 
@@ -156,10 +157,25 @@ vb_continuous <-
                                   weight = NULL, boot_iters = FALSE
                     )
 
-                boot_results[[itnm]] <- boot_out
+                if(cache){
 
-                if(verbose) cat("Completed resample", itnm, "\n")
+                    tmp_path <-
+                        file.path(tmp_dir,
+                                  sprintf("blocs-vbdf-%s.fst", itnm))
 
+                    fst::write_fst(boot_out, tmp_path, compress = 0)
+                    rm(boot_out)
+
+                } else boot_results[[itnm]] <- boot_out
+
+                if(verbose) cat("Completed ", itnm, "\n")
+            }
+
+            if(cache){
+                vbdf_fns <- file.path(tmp_dir, paste0("blocs-vbdf-", colnames(itermat_density), ".fst"))
+                names(vbdf_fns) <- colnames(itermat_density)
+
+                boot_results <- lapply(vbdf_fns, fst::read_fst)
             }
 
             # Organize output
@@ -167,9 +183,7 @@ vb_continuous <-
 
             out <-
                 vbdf(results,
-                     bloc_var = get_bloc_var(results),
-                     var_type  = get_var_type(results)
-                )
+                     bloc_var = indep, var_type  = "continuous")
         }
 
         colnms <- c("pr_turnout", "pr_votedem", "pr_voterep", "cond_rep")

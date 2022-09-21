@@ -55,28 +55,30 @@ test_that("Discrete analysis runs with and without weights", {
 
     expect_equal(vbdf_wtd$prob,       (check$prob * data$weight) / sum(check$prob * data$weight))
     expect_equal(vbdf_wtd$pr_turnout, check$pr_turnout)
-    expect_equal(vbdf$pr_voterep,   check$pr_voterep)
-    expect_equal(vbdf$pr_votedem,   check$pr_votedem)
-    expect_equal(vbdf_wtd$net_rep,    check$cond_rep * (check$prob * data$weight) / sum(check$prob * data$weight))
+    expect_equal(vbdf$pr_voterep,     check$pr_voterep)
+    expect_equal(vbdf$pr_votedem,     check$pr_votedem)
+    expect_equal(vbdf_wtd$net_rep,    (check$pr_voterep - check$pr_votedem) * (check$prob * data$weight) / sum(check$prob * data$weight))
 }
 )
 
 test_that("ANES analysis expected results", {
     data(anes)
+    anes_tmp <- filter(anes, year == sample(seq(1976, 2020, 4), 1))
 
-    anes20 <- filter(anes, year == 2020)
+    cat("########### TESTING WITH ANES", unique(anes_tmp$year), "###########")
 
-    vbdf <- vb_discrete(anes20, indep = "race",
+
+    vbdf <- vb_discrete(anes_tmp, indep = "race",
                         dv_vote3 = "vote_pres3",
                         dv_turnout = "voted", weight = "weight",
                         boot_iters = FALSE)
 
 
     check  <-
-        filter(anes20, !is.na(race)) %>%
+        filter(anes_tmp, !is.na(race)) %>%
         group_by(race) %>%
         summarize(
-            prob = sum(weight) / sum(anes20$weight),
+            prob = sum(weight) / sum(anes_tmp$weight),
             pr_turnout = weighted.mean(voted, weight, na.rm = TRUE),
             pr_voterep = weighted.mean(vote_pres3 == 1, weight, na.rm = TRUE),
             pr_votedem = weighted.mean(vote_pres3 == -1, weight, na.rm = TRUE)
@@ -89,7 +91,7 @@ test_that("ANES analysis expected results", {
 
 
 
-    vbdf <- vb_discrete(anes20, indep = c("race", "educ"),
+    vbdf <- vb_discrete(anes_tmp, indep = c("race", "educ"),
                         dv_vote3 = "vote_pres3",
                         dv_turnout = "voted", weight = "weight",
                         boot_iters = FALSE) %>%
@@ -97,10 +99,10 @@ test_that("ANES analysis expected results", {
 
 
     check  <-
-        filter(anes20, !is.na(race), !is.na(educ)) %>%
+        filter(anes_tmp, !is.na(race), !is.na(educ)) %>%
         group_by(race, educ) %>%
         summarize(
-            prob = sum(weight) / sum(anes20$weight),
+            prob = sum(weight) / sum(anes_tmp$weight),
             pr_turnout = weighted.mean(voted, weight, na.rm = TRUE),
             pr_voterep = weighted.mean(vote_pres3 == 1, weight, na.rm = TRUE),
             pr_votedem = weighted.mean(vote_pres3 == -1, weight, na.rm = TRUE)
@@ -123,22 +125,25 @@ test_that("ANES analysis expected results", {
 )
 
 test_that("Bootstrapping runs", {
+    data(anes)
+    anes_tmp <- filter(anes, year == sample(seq(1976, 2020, 4), 1))
+    cat("########### TESTING WITH ANES", unique(anes_tmp$year), "###########")
 
     # 2 runs on ANES 2020
     set.seed(1)
-    vbdf_1a <- vb_discrete(anes20, indep = c("race", "educ"),
+    vbdf_1a <- vb_discrete(anes_tmp, indep = c("race", "educ"),
                            dv_vote3 = "vote_pres3",
                            dv_turnout = "voted", weight = "weight",
                            boot_iters = 2)
 
     set.seed(1)
-    vbdf_1b <- vb_discrete(anes20, indep = c("race", "educ"),
+    vbdf_1b <- vb_discrete(anes_tmp, indep = c("race", "educ"),
                            dv_vote3 = "vote_pres3",
                            dv_turnout = "voted", weight = "weight",
                            boot_iters = 2)
 
     set.seed(2)
-    vbdf_2 <- vb_discrete(anes20, indep = c("race", "educ"),
+    vbdf_2 <- vb_discrete(anes_tmp, indep = c("race", "educ"),
                           dv_vote3 = "vote_pres3",
                           dv_turnout = "voted", weight = "weight",
                           boot_iters = 2)
@@ -175,3 +180,36 @@ test_that("Bootstrapping runs", {
 
 }
 )
+
+test_that("Cache works", {
+    data(anes)
+    anes_tmp <- filter(anes, year == sample(seq(1976, 2020, 4), 1))
+    cat("########### TESTING WITH ANES", unique(anes_tmp$year), "###########")
+
+    # no cache
+    set.seed(1)
+    vbdf_1a <- vb_discrete(anes_tmp, indep = c("race", "educ"),
+                           dv_vote3 = "vote_pres3",
+                           dv_turnout = "voted", weight = "weight",
+                           boot_iters = 20) %>%
+        arrange(as.character(race), desc(as.character(educ)))
+    # cache
+    set.seed(1)
+    vbdf_1b <- vb_discrete(anes_tmp, indep = c("race", "educ"),
+                           dv_vote3 = "vote_pres3",
+                           dv_turnout = "voted", weight = "weight",
+                           cache = TRUE,
+                           boot_iters = 20) %>%
+        arrange(as.character(race), desc(as.character(educ)))
+
+    expect_equal(vbdf_1a, vbdf_1b, tolerance = 0.001)
+
+    vb_discrete(anes_tmp, indep = "rac",
+                dv_turnout = "voted",
+                dv_vote3 = "vote3",
+                weight = "weight",
+                boot_iters = 100,
+                cache = TRUE)
+
+
+})

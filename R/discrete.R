@@ -22,7 +22,7 @@
 #'   \code{data_vote} data sets.
 #' @param weight     optional string naming the column of sample weights.
 #' @param boot_iters integer, number of bootstrap iterations for uncertainty
-#'   estimation. The default `NULL` is equivalent to 0 and does not estimate
+#'   estimation. The default \code{FALSE} is equivalent to 0 and does not estimate
 #'   uncertainty.
 #' @param net_rep_only   logical, whether to return only composition and net Republican votes.
 #'                       The default \code{FALSE} computes and returns the other components,
@@ -31,6 +31,9 @@
 #'
 #' @param verbose        logical, whether to print iteration number.
 #' @param check_discrete logical, whether to check if \code{indep} is a discrete variable.
+#' @param cache          logical, whether to write intermediate results to disk and
+#'                       clear out working memory. Useful for many bootstrap iterations
+#'                       and large data sets.
 #'
 #' @return A \code{vbdf} object.
 #' @importFrom dplyr %>%
@@ -44,7 +47,8 @@ vb_discrete <-
              indep, dv_vote3 = NULL, dv_turnout = NULL,
              weight = NULL, boot_iters = FALSE,
              net_rep_only = FALSE,
-             verbose = FALSE, check_discrete = TRUE){
+             verbose = FALSE, check_discrete = TRUE,
+             cache = FALSE){
 
         if(is_grouped_df(data_density)){
             stop("Density estimation does not permit grouped data frames.\n
@@ -55,18 +59,19 @@ vb_discrete <-
         stopifnot(is.data.frame(data_turnout))
         stopifnot(is.data.frame(data_vote))
 
-        if( check_discrete & dplyr::n_distinct(dplyr::select(dplyr::ungroup(data_density), dplyr::all_of(indep))) > 50)
-            stop("More than 25 unique values detected in indep. If you are sure you don't want vb_continuous(), set check_discrete = FALSE.")
-
-
         stopifnot(rlang::has_name(data_density, indep))
         stopifnot(rlang::has_name(data_density, weight))
 
         stopifnot(rlang::has_name(data_turnout, indep))
+        stopifnot(rlang::has_name(data_turnout, dv_turnout))
         stopifnot(rlang::has_name(data_turnout, weight))
 
         stopifnot(rlang::has_name(data_vote, indep))
+        stopifnot(rlang::has_name(data_vote, dv_vote3))
         stopifnot(rlang::has_name(data_vote, weight))
+
+        if( check_discrete & dplyr::n_distinct(dplyr::select(dplyr::ungroup(data_density), dplyr::all_of(indep))) > 50)
+            stop("More than 25 unique values detected in indep. If you are sure you don't want vb_continuous(), set check_discrete = FALSE.")
 
         # Remove missing values like vb_continuous()
         nrow_density <- nrow(data_density)
@@ -225,6 +230,9 @@ vb_discrete <-
                         var_type = "discrete")
 
         } else {
+            ###################
+            #### BOOTSTRAP ####
+            ###################
 
             # Create matrix of data-row indices for each iteration
             itermat_density <-
@@ -242,6 +250,7 @@ vb_discrete <-
 
             # Run bootstrap
             boot_results <- list()
+            if(cache) tmp_dir <- tempdir()
 
             for(itnm in colnames(itermat_density)){
                 boot_density <- data_density[itermat_density[ , itnm], ]
@@ -259,19 +268,32 @@ vb_discrete <-
                                 weight = NULL,
                                 boot_iters = FALSE)
 
-                boot_results[[itnm]] <- boot_out
+                if(cache){
 
-                if(verbose) cat("Completed resample", itnm, "\n")
+                    tmp_path <-
+                        file.path(tmp_dir,
+                                  sprintf("blocs-vbdf-%s.fst", itnm))
 
+                    fst::write_fst(boot_out, tmp_path, compress = 0)
+                    rm(boot_out)
+
+                } else boot_results[[itnm]] <- boot_out
+
+                if(verbose) cat("Completed ", itnm, "\n")
             }
 
-            results <- bind_rows(boot_results, .id = "resample")
+            if(cache){
+                vbdf_fns <- file.path(tmp_dir, paste0("blocs-vbdf-", colnames(itermat_density), ".fst"))
+                names(vbdf_fns) <- colnames(itermat_density)
+
+                boot_results <- lapply(vbdf_fns, fst::read_fst)
+            }
+
+            results <- dplyr::bind_rows(boot_results, .id = "resample")
 
             out <-
                 vbdf(results,
-                     bloc_var = get_bloc_var(results),
-                     var_type = get_var_type(results)
-                )
+                     bloc_var = indep, var_type = "discrete")
         }
 
         return(out)

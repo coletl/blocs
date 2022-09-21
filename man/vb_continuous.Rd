@@ -16,7 +16,7 @@ vb_continuous(
   min_val = NULL,
   max_val = NULL,
   n_points = 100,
-  boot_iters = FALSE,
+  boot_iters = c(density = 1000, turnout = 1000, vote = 1000),
   verbose = FALSE,
   ...
 )
@@ -57,9 +57,9 @@ voter turnout in \code{data_turnout}. That column must be coded 0 =  no vote, 1 
 \item{n_points}{scalar, number of points at which to estimate density. See
 \link{estimate_density}.}
 
-\item{boot_iters}{integer, number of bootstrap iterations for uncertainty
-estimation. The default `NULL` is equivalent to 0 and does not estimate
-uncertainty.}
+\item{boot_iters}{numeric, number of bootstrap iterations for uncertainty
+estimation. You may supply a numeric vector of length 1 or a named vector specifying
+the number of iterations for each dataset.}
 
 \item{verbose}{logical, whether to print iteration number.}
 
