@@ -1,6 +1,8 @@
-test_that("Discrete analysis runs with and without weights", {
-    library(dplyr)
+library(dplyr)
 
+##### WEIGHTS ####
+
+test_that("Discrete analysis runs with and without weights", {
     data <- data.frame(
         x_disc = LETTERS[1:4],
         x_cont = 1:4,
@@ -61,7 +63,9 @@ test_that("Discrete analysis runs with and without weights", {
 }
 )
 
-test_that("ANES analysis expected results", {
+##### ANES ####
+
+test_that("Expected results from ANES analysis", {
     data(anes)
     anes_tmp <- filter(anes, year == sample(seq(1976, 2020, 4), 1))
 
@@ -84,9 +88,12 @@ test_that("ANES analysis expected results", {
             pr_votedem = weighted.mean(vote_pres3 == -1, weight, na.rm = TRUE)
         ) %>%
         mutate(race = as.factor(race),
-               net_rep = prob * pr_turnout * (pr_voterep - pr_votedem))
+               cond_rep = pr_voterep - pr_votedem,
+               net_rep = prob * (cond_rep))
 
-    expect_equal(vbdf, check, ignore_attr = TRUE, tolerance = 0.01)
+    expect_equal(vbdf %>% select(-resample) %>% filter(!is.na(race)),
+                 check,
+                 ignore_attr = TRUE, tolerance = 0.01)
 
 
 
@@ -109,13 +116,15 @@ test_that("ANES analysis expected results", {
         ) %>%
         mutate(race = as.factor(race),
                educ = as.factor(educ),
-               net_rep = prob * pr_turnout * (pr_voterep - pr_votedem)) %>%
+               cond_rep = pr_voterep - pr_votedem,
+               net_rep = prob * pr_turnout * cond_rep) %>%
         arrange(as.character(race), desc(as.character(educ)))
 
     # Some problems with density estimation for check.
     # blocs' prob calculation is against questionr::wtd.table()
     # in separate test script
     expect_equal(vbdf %>% ungroup() %>%
+                     filter(!is.na(race), !is.na(educ)) %>%
                      select(pr_turnout, pr_voterep, pr_votedem),
                  check %>% ungroup() %>%
                      select(pr_turnout, pr_voterep, pr_votedem),
@@ -124,12 +133,13 @@ test_that("ANES analysis expected results", {
 }
 )
 
+##### BOOTSTRAPPING ####
 test_that("Bootstrapping runs", {
     data(anes)
     anes_tmp <- filter(anes, year == sample(seq(1976, 2020, 4), 1))
     cat("########### TESTING WITH ANES", unique(anes_tmp$year), "###########")
 
-    # 2 runs on ANES 2020
+    # 2 runs on ANES 2020 ----
     set.seed(1)
     vbdf_1a <- vb_discrete(anes_tmp, indep = c("race", "educ"),
                            dv_vote3 = "vote_pres3",
@@ -149,9 +159,10 @@ test_that("Bootstrapping runs", {
                           boot_iters = 2)
 
     expect_equal(vbdf_1a, vbdf_1b)
+    expect_equal(nrow(vbdf_1a), nrow(vbdf_2))
     expect_false(isTRUE(all.equal(vbdf_1a, vbdf_2)))
 
-    # Many runs on toy data
+    # Many runs on toy data ----
     data <- data.frame(
         x_disc = LETTERS[1:4],
         x_cont = 1:4,
@@ -178,38 +189,73 @@ test_that("Bootstrapping runs", {
 
     expect_equal(vbdf_3$prob, vbdf_4$prob)
 
+    # Vector of boot_iters ----
+    set.seed(1)
+    boot_iters <- c(density = 0, turnout = 10, vote = 20)
+    vbdf <-
+        vb_discrete(anes_tmp, indep = c("race", "educ"),
+                    dv_vote3 = "vote_pres3",
+                    dv_turnout = "voted", weight = "weight",
+                    boot_iters = boot_iters)
+
+    luq <- nrow(collapse::funique(select(anes_tmp, race, educ)))
+    expect_equal(nrow(collapse::funique(select(vbdf, race, educ))),
+                 nrow(collapse::funique(select(filter(vbdf, resample == "original"), race, educ)))
+    )
+
+    expect_setequal(vbdf$resample,
+                    c("original", paste0("resample-", 1:luq)))
+    expect_setequal(vbdf$resample[1:luq], "original")
+    expect_setequal(vbdf$resample[(luq+1):(2*luq)], "resample-1")
+    expect_setequal(vbdf$prob[(luq+1:nrow(vbdf))], NA)
+
+    expect_setequal(vbdf$pr_turnout[1:luq], NA)
+    expect_false(any(is.na(vbdf$pr_turnout[(luq+1):(luq+luq*boot_iters["turnout"])])))
+    expect_setequal(vbdf$pr_turnout[(luq+luq*boot_iters["turnout"] + 1):nrow(vbdf)], NA)
+
+    expect_false(any(is.na(vbdf$cond_rep[(luq+1):nrow(vbdf)])))
 }
 )
 
-test_that("Cache works", {
-    data(anes)
-    anes_tmp <- filter(anes, year == sample(seq(1976, 2020, 4), 1))
-    cat("########### TESTING WITH ANES", unique(anes_tmp$year), "###########")
+test_that("Grouped data.frame throws an error",
+          {
+              data(anes)
+              expect_error(
+                  group_by(anes, year) %>% vb_discrete(),
+                  "does not permit grouped data frames"
+              )
 
-    # no cache
-    set.seed(1)
-    vbdf_1a <- vb_discrete(anes_tmp, indep = c("race", "educ"),
-                           dv_vote3 = "vote_pres3",
-                           dv_turnout = "voted", weight = "weight",
-                           boot_iters = 20) %>%
-        arrange(as.character(race), desc(as.character(educ)))
-    # cache
-    set.seed(1)
-    vbdf_1b <- vb_discrete(anes_tmp, indep = c("race", "educ"),
-                           dv_vote3 = "vote_pres3",
-                           dv_turnout = "voted", weight = "weight",
-                           cache = TRUE,
-                           boot_iters = 20) %>%
-        arrange(as.character(race), desc(as.character(educ)))
+              expect_error(
+                  group_by(anes, year) %>% vb_continuous(),
+                  "does not permit grouped data frames"
+              )
+          })
 
-    expect_equal(vbdf_1a, vbdf_1b, tolerance = 0.001)
-
-    vb_discrete(anes_tmp, indep = "rac",
-                dv_turnout = "voted",
-                dv_vote3 = "vote3",
-                weight = "weight",
-                boot_iters = 100,
-                cache = TRUE)
-
-
-})
+# test_that("Grouped data.frame works", {
+#     data(anes)
+#     anes_list <-
+#         filter(anes, year %in% sample(seq(1976, 2020, 4), 5)) %>%
+#         split(., .$year)
+#     anes <- bind_rows(anes_list)
+#
+#     set.seed(2)
+#     vbdf_grp <-
+#         group_by(anes, year) %>%
+#         summarize(
+#             vb_discrete(data = ., indep = "race",
+#                         dv_vote3 = "vote_pres3", dv_turnout = "voted",
+#                         weight = "weight", cache = TRUE,
+#                         boot_iters = FALSE)
+#         ) %>% ungroup()
+#
+#     set.seed(2)
+#     vbdf_split <-
+#         lapply(anes_list, vb_discrete,
+#                indep = "race", dv_vote3 = "vote_pres3", dv_turnout = "voted",
+#                weight = "weight", cache = TRUE,
+#                boot_iters = FALSE) %>%
+#         bind_rows(.id = "year")
+#
+#     expect_equal(vbdf_grp, vbdf_split)
+#
+# })

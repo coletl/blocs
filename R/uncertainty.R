@@ -1,12 +1,21 @@
 ################ Uncertainty ##############
 
 boot_mat <- function(nrow, iters, weight = NULL){
-    itermat <-
-        replicate(iters, sample.int(nrow, replace = TRUE, prob = weight))
+    # For zero iterations, return the original row indices
+    if(iters == 0){
+        out <- matrix(1:nrow)
+        colnames(out) <- "original"
+    } else {
+        out <-
+            replicate(iters,
+                      sample.int(nrow, replace = TRUE,
+                                 prob = weight))
 
-    out <- cbind(1:nrow, itermat)
-    colnames(out) <- c("resample-0",
-                       sprintf("resample-%s", 1:iters))
+        # unique, sortable tags for each resample
+        iter_tags <- formatC(1:iters, width = 8, format = "d", flag = "0")
+        colnames(out) <- sprintf("resample-%s", iter_tags)
+
+    }
 
     return(out)
 }
@@ -40,7 +49,7 @@ vb_uncertainty <- function(object, type, estimates, ...) UseMethod("vb_uncertain
 #'   should accept a numeric vector input and return a scalar.
 #' @param low_ci  numeric. If you include the string \code{"low"} in \code{funcs}, then use this argument to control the lower bound of the confidence interval.
 #' @param high_ci numeric. If you include the string \code{"high"} in \code{funcs}, then use this argument to control the upper bound of the confidence interval.
-#' @param bin_col character vector naming the columns that contain the bins. Only used if  \code{type} is \code{"binned"}.
+#' @param bin_col character vector naming the column(s) that define the bins. Used only when  \code{type} is \code{"binned"}.
 #' @return A \code{vbdf} object with additional columns for each combination
 #'   of \code{estimates} and \code{funcs}.
 #'
@@ -48,29 +57,29 @@ vb_uncertainty <- function(object, type, estimates, ...) UseMethod("vb_uncertain
 #' @export
 
 vb_uncertainty.vbdf <-
-    function(vbdf, type = c("continuous", "binned", "discrete"),
+    function(vbdf, type = c("discrete", "continuous", "binned"),
              estimates = c("prob", "pr_turnout", "pr_voterep", "pr_votedem", "net_rep"),
              na.rm = FALSE,
-             funcs = c("original", "mean", "median", "low", "high"),
+             funcs = c("mean", "median", "low", "high"),
              low_ci = 0.025, high_ci = 0.975,
              bin_col){
 
-        if(missing(estimates)) stop("Missing required argument estimates")
-
         # check_vbdiff(vbdiff)
-        type <- match.arg(type)
+        if(length(type) > 1) type <- get_var_type(vbdf)
 
+        stopifnot(rlang::has_name(vbdf, estimates))
+
+        type <- match.arg(type)
         bloc_var <- get_bloc_var(vbdf)
 
         if(is.character(funcs))
             funcs <-
             list(
                 # resample is a column in vbdf
-                original = ~ .x[resample == "resample-0"],
-                mean     = ~ mean(.x[resample != "resample-0"],     na.rm = na.rm),
-                median   = ~ median(.x[resample != "resample-0"],   na.rm = na.rm),
-                low      = ~ quantile(.x[resample != "resample-0"], prob = low_ci, na.rm = na.rm),
-                high     = ~ quantile(.x[resample != "resample-0"], prob = high_ci, na.rm = na.rm)
+                mean     = ~ mean(.x[resample != "original"],     na.rm = na.rm),
+                median   = ~ median(.x[resample != "original"],   na.rm = na.rm),
+                low      = ~ quantile(.x[resample != "original"], prob = low_ci, na.rm = na.rm),
+                high     = ~ quantile(.x[resample != "original"], prob = high_ci, na.rm = na.rm)
             )[funcs]
 
         switch(type,
@@ -79,13 +88,16 @@ vb_uncertainty.vbdf <-
                        uncertainty_summary <-
                            # For each subgroup, calculate summary stats across iterations
                            vbdf %>%
-                           dplyr::group_by(dplyr::across(dplyr::all_of(c(dplyr::group_vars(vbdf), bloc_var)))) %>%
+                           dplyr::group_by(
+                               dplyr::across(dplyr::all_of(
+                                   c(dplyr::group_vars(vbdf), bloc_var)))
+                               ) %>%
                            dplyr::summarize(
                                dplyr::across(dplyr::all_of(estimates),
                                              .fns = funcs
                                ),
                                # subtract the original data, resample == resample-0
-                               boot_iters  = dplyr::n_distinct(setdiff(resample, "resample-0"))
+                               boot_iters  = dplyr::n_distinct(setdiff(resample, "original"))
                            )
                    },
                binned =

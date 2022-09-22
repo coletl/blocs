@@ -31,9 +31,6 @@
 #'
 #' @param verbose        logical, whether to print iteration number.
 #' @param check_discrete logical, whether to check if \code{indep} is a discrete variable.
-#' @param cache          logical, whether to write intermediate results to disk and
-#'                       clear out working memory. Useful for many bootstrap iterations
-#'                       and large data sets.
 #'
 #' @return A \code{vbdf} object.
 #' @importFrom dplyr %>%
@@ -47,12 +44,10 @@ vb_discrete <-
              indep, dv_vote3 = NULL, dv_turnout = NULL,
              weight = NULL, boot_iters = FALSE,
              net_rep_only = FALSE,
-             verbose = FALSE, check_discrete = TRUE,
-             cache = FALSE){
+             verbose = FALSE, check_discrete = TRUE){
 
         if(is_grouped_df(data_density)){
-            stop("Density estimation does not permit grouped data frames.\n
-                  Please use split-apply-combine to analyze multiple years, or pass multiple column names to the `indep` parameter for multivariate blocs.")
+            stop("Voting blocs analysis does not permit grouped data frames.\n Please use split-apply-combine to analyze multiple years, or pass multiple column names to the `indep` parameter for multivariate blocs.")
         }
 
         stopifnot(is.data.frame(data_density))
@@ -73,14 +68,6 @@ vb_discrete <-
         if( check_discrete & dplyr::n_distinct(dplyr::select(dplyr::ungroup(data_density), dplyr::all_of(indep))) > 50)
             stop("More than 25 unique values detected in indep. If you are sure you don't want vb_continuous(), set check_discrete = FALSE.")
 
-        # Remove missing values like vb_continuous()
-        nrow_density <- nrow(data_density)
-        data_density <- stats::na.omit(dplyr::select(data_density, dplyr::all_of(c(dplyr::group_vars(data_density), indep, weight))))
-
-        na_check <- nrow_density - nrow(data_density)
-        if(na_check/nrow_density > 0.05)
-            warning(sprintf("Dropped %s missing values from data_density.", na_check))
-
         # Start with NULL weights = 1, but grab the col if present
         weight_density <- rep(1L, nrow(data_density))
         weight_turnout <- rep(1L, nrow(data_turnout))
@@ -97,7 +84,7 @@ vb_discrete <-
             if(rlang::has_name(data_vote, weight))
                 weight_vote    <- data_vote[[weight]]
 
-            # Check that weights greater than non-zero
+            # Check that weights greater than zero
             if(
                 any(
                     weight_density <= 0,
@@ -121,181 +108,100 @@ vb_discrete <-
             data_vote %>%
             collapse::ftransformv(vars = indep, FUN =  collapse::qF)
 
-        indep_str <- paste(indep, collapse = " * ")
+        results_base <-
+            collapse::get_vars(data_density, indep) %>%
+            collapse::funique()
 
-        if(boot_iters == 0){
-
-            # Estimate Pr(X) ----
-            prob_tbl <-
-                wtd_table(dplyr::select(data_density, dplyr::all_of(indep)),
-                          weight = weight_density,
-                          prop = TRUE, return_tibble = TRUE) %>%
-                dplyr::rename(prob = prop)
-
-            if(any(prob_tbl$prob < 0.005))
-                warning("Extremely small voting bloc detected. Regression may fail.")
-
-            #########################################
-            #### Minimal calc. for Net Rep Votes ####
-            #########################################
-            if(net_rep_only){
-
-                if(! identical(data_vote, data_turnout) )
-                    warning("Ignoring data_turnout argument because net_rep_only is TRUE")
-
-                # Fit vote choice
-                form_dv3 <- stats::as.formula(sprintf("%s ~ %s", dv_vote3, indep_str))
-                # Use tryCatch() to return NA when lacking variation
-                lm_dv3   <-
-                    tryCatch(
-                        stats::lm(form_dv3, data = data_vote, weight = weight_vote),
-                        error = function(e) NULL
-                    )
-
-                # Model failed
-                if(is.null(lm_dv3)){
-                    results <-
-                        prob_tbl %>%
-                        dplyr::mutate(
-                            cond_rep   = NA_integer_,
-                            net_rep    = NA_integer_) %>%
-                        # rounding fixes miniscule pred. probs from 0 observed turnout
-                        dplyr::mutate(across(where(is.numeric), round, 10)) %>%
-                        dplyr::mutate(across(where(is.numeric), unname))
-                } else {
-                # Model fit successfully
-                # but resampled data might be missing levels
-                    cond_rep <- tryCatch(
-                        expr = {
-                            stats::predict(lm_dv3, newdata = turnout_tbl)
-                            },
-
-                        error = function(e){
-                            tmp_tbl <- prob_tbl
-
-                            # remove factor levels not in (prob. resampled) data
-                            miss_ind <- which( ! collapse::finteraction(tmp_tbl[indep]) %in%
-                                                   collapse::finteraction(data_vote[indep]))
-                            miss_lvls <- tmp_tbl[miss_ind, ]
-                            tmp_tbl[miss_ind, indep] <- NA_character_
-
-                            stats::predict(lm_dv3, newdata = tmp_tbl)
-
-                        }
-                    )
-
-                    results <-
-                        prob_tbl %>%
-                        dplyr::mutate(
-                            cond_rep   = cond_rep,
-                            net_rep    = cond_rep * prob
-                        ) %>%
-                        # rounding fixes miniscule pred. probs from 0 observed turnout
-                        dplyr::mutate(across(where(is.numeric), round, 10)) %>%
-                        dplyr::mutate(across(where(is.numeric), unname))
-                }
-            } else {
-            ######################################
-            ##### Return component estimates #####
-            ######################################
-                # Weighted mean handles 0 turnout better than lm
-                turnout_tbl <-
-                    data_turnout %>%
-                    collapse::fgroup_by(indep) %>%
-                    collapse::get_vars(dv_turnout) %>%
-                    collapse::fmean(w = weight_turnout) %>%
-                    dplyr::rename(pr_turnout = {{dv_turnout}})
-
-
-                # Separate grouping for vote-choice data set
-                vote_tbl <-
-                    data_vote %>%
-                    collapse::ftransform(
-                        pr_voterep = as.numeric(get({{dv_vote3}}) ==  1),
-                        pr_votedem = as.numeric(get({{dv_vote3}}) == -1)
-                        ) %>%
-                    collapse::fgroup_by(indep) %>%
-                    collapse::get_vars(c("pr_voterep", "pr_votedem")) %>%
-                    collapse::fmean(w = weight_turnout)
-
-                results <-
-                    dplyr::left_join(prob_tbl, turnout_tbl, by = indep) %>%
-                    dplyr::left_join(vote_tbl, by = indep) %>%
-                    dplyr::mutate(net_rep = prob * pr_turnout * (pr_voterep - pr_votedem))
-
-            }
-
-
-            out <- vbdf(results, bloc_var = indep,
-                        var_type = "discrete")
-
+        # Boostrap setup ----
+        if(length(boot_iters) == 1){
+            boot_iters_density <-
+                boot_iters_turnout <-
+                boot_iters_vote <- boot_iters
         } else {
-            ###################
-            #### BOOTSTRAP ####
-            ###################
-
-            # Create matrix of data-row indices for each iteration
-            itermat_density <-
-                boot_mat(nrow(data_density), iters = boot_iters,
-                         weight = weight_density)
-
-            itermat_turnout <-
-                boot_mat(nrow(data_turnout), iters = boot_iters,
-                         weight = weight_turnout)
-
-            itermat_vote <-
-                boot_mat(nrow(data_vote), iters = boot_iters,
-                         weight = weight_vote)
-
-
-            # Run bootstrap
-            boot_results <- list()
-            if(cache) tmp_dir <- tempdir()
-
-            for(itnm in colnames(itermat_density)){
-                boot_density <- data_density[itermat_density[ , itnm], ]
-                boot_turnout <- data_turnout[itermat_turnout[ , itnm], ]
-                boot_vote    <- data_vote[itermat_vote[ , itnm], ]
-
-                boot_out <-
-                    vb_discrete(data_density = boot_density,
-                                data_turnout = boot_turnout,
-                                data_vote    = boot_vote,
-                                indep = indep,
-                                dv_vote3 = dv_vote3,
-                                dv_turnout = dv_turnout,
-                                # Weighted in resampling
-                                weight = NULL,
-                                boot_iters = FALSE)
-
-                if(cache){
-
-                    tmp_path <-
-                        file.path(tmp_dir,
-                                  sprintf("blocs-vbdf-%s.fst", itnm))
-
-                    fst::write_fst(boot_out, tmp_path, compress = 0)
-                    rm(boot_out)
-
-                } else boot_results[[itnm]] <- boot_out
-
-                if(verbose) cat("Completed ", itnm, "\n")
-            }
-
-            if(cache){
-                vbdf_fns <- file.path(tmp_dir, paste0("blocs-vbdf-", colnames(itermat_density), ".fst"))
-                names(vbdf_fns) <- colnames(itermat_density)
-
-                boot_results <- lapply(vbdf_fns, fst::read_fst)
-            }
-
-            results <- dplyr::bind_rows(boot_results, .id = "resample")
-
-            out <-
-                vbdf(results,
-                     bloc_var = indep, var_type = "discrete")
+            boot_iters_density <-
+                boot_iters[pmatch("density", names(boot_iters))]
+            boot_iters_turnout <-
+                boot_iters[pmatch("turnout", names(boot_iters))]
+            boot_iters_vote    <-
+                boot_iters[pmatch("vote", names(boot_iters))]
         }
 
+        results_list <- list()
+
+        # Probability mass calculation ----
+        # Create matrix of data-row indices for each iteration
+        # For iters = 0, returns the original row indices
+        itermat_density <-
+            boot_mat(nrow(data_density), iters = boot_iters_density,
+                     weight = weight_density)
+
+        # Remove weights when using resampled data
+        if(boot_iters_density > 0) weight_density <- NULL
+
+        results_list$prob <-
+            apply(itermat_density, 2,
+                  FUN = \(ind)
+
+                  dplyr::slice(data_density, ind) %>%
+                      dplyr::ungroup() %>%
+                      dplyr::select(dplyr::all_of(indep)) %>%
+
+                      wtd_table(weight = weight_density,
+                                prop = TRUE, return_tibble = TRUE) %>%
+
+                      dplyr::rename(prob = prop)
+            ) %>%
+            dplyr::bind_rows(.id = "resample")
+
+        # Turnout calculation ----
+        itermat_turnout <-
+            boot_mat(nrow(data_turnout), iters = boot_iters_turnout,
+                     weight = weight_turnout)
+
+        if(boot_iters_turnout > 0) weight_turnout <- NULL
+
+        results_list$turnout <-
+            apply(itermat_turnout, 2,
+                  FUN = \(ind)
+
+                  calc_turnout(dplyr::slice(data_turnout, ind),
+                               indep = indep,
+                               dv = dv_turnout, weight = weight_turnout)
+
+            ) %>%
+            bind_rows(.id = "resample")
+
+        # Vote choice calculation ----
+        itermat_vote <-
+            boot_mat(nrow(data_vote), iters = boot_iters_vote,
+                     weight = weight_vote)
+
+        if(boot_iters_vote > 0) weight_vote <- NULL
+
+        results_list$vote <-
+            apply(itermat_vote, 2,
+                  FUN = \(ind)
+                      calc_vote(dplyr::slice(data_vote, ind),
+                                indep = indep,
+                                dv = dv_vote3, weight = weight_vote)
+            ) %>%
+            dplyr::bind_rows(.id = "resample")
+
+
+        results <-
+            dplyr::full_join(results_base, results_list$prob, by = indep) %>%
+            dplyr::full_join(results_list$turnout,
+                             by = c("resample", indep)) %>%
+            dplyr::full_join(results_list$vote, by = c("resample", indep)) %>%
+            # Formatting
+            collapse::roworderv(cols = c("resample", indep)) %>%
+            collapse::fmutate(resample = gsub("-0+", "-", resample),
+                              net_rep = prob * cond_rep)
+
+
+        out <-
+            vbdf(results,
+                 bloc_var = indep, var_type = "discrete")
         return(out)
     }
 
@@ -325,6 +231,8 @@ wtd_table <-
         ) stop("All vector inputs must be factor or character. All subsequent arguments must be fully named.")
 
 
+        if(!is.null(weight)) stopifnot(is.numeric(weight))
+
         tabdf <- data.frame(...)
         if(normwt) weight <- weight * nrow(tabdf)/sum(weight)
 
@@ -353,3 +261,88 @@ wtd_table <-
 
         return(out)
     }
+
+calc_turnout <- function(data, indep, dv, weight){
+
+    cgdf <-
+        collapse::get_vars(
+
+            collapse::fgroup_by(data, indep),
+
+            dv
+        )
+
+    results <- collapse::fmean(cgdf, w = weight)
+    out <- dplyr::rename(results, pr_turnout = {{dv}})
+
+    return(out)
+}
+
+calc_vote <- function(data, indep, dv, weight){
+
+    cgdf <-
+        collapse::get_vars(
+
+            collapse::fgroup_by(
+
+                collapse::ftransform(
+                    data,
+                    pr_voterep = as.numeric(get({{dv}}) ==  1),
+                    pr_votedem = as.numeric(get({{dv}}) == -1)
+                ),
+                indep),
+
+            c("pr_voterep", "pr_votedem")
+        )
+
+    out <- collapse::fmean(cgdf, w = weight)
+    out$cond_rep <- out$pr_voterep - out$pr_votedem
+
+    return(out)
+}
+
+lm_vote3 <- function(data, indep, dv, weight) {
+    # Fit vote choice
+    indep_str <- paste(indep, collapse = " * ")
+    form_dv3 <- stats::as.formula(sprintf("%s ~ %s", dv, indep_str))
+
+    pred_data <-
+        collapse::funique(
+            collapse::get_vars(data, indep)
+        )
+
+    # Use tryCatch() to return NA when lacking variation
+    lm_dv3   <-
+        tryCatch(
+            stats::lm(form_dv3, data = data, weight = weight),
+            error = function(e) NULL
+        )
+
+    pred_data$cond_rep <- stats::predict(lm_dv3, newdata = pred_data)
+
+    # if( !is.null(lm_dv3) ){
+    #     # Model fit successfully
+    #     # but resampled data might be missing levels
+    #     pred_data$cond_rep <-
+    #         tryCatch(
+    #             expr = {
+    #                 stats::predict(lm_dv3, newdata = pred_data)
+    #             },
+    #             error = function(e){
+    #                 tmp_tbl <- pred_data
+    #
+    #                 # remove factor levels not in (prob. resampled) data
+    #                 miss_ind <- which( ! collapse::finteraction(tmp_tbl[indep]) %in%
+    #                                        collapse::finteraction(data[indep]))
+    #                 miss_lvls <- tmp_tbl[miss_ind, ]
+    #                 tmp_tbl[miss_ind, indep] <- NA_character_
+    #
+    #                 stats::predict(lm_dv3, newdata = tmp_tbl)
+    #             }
+    #         )
+    # Model failed
+    # } else pred_data$cond_rep <- NA
+
+    return(pred_data)
+}
+
