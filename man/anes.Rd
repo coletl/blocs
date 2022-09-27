@@ -14,6 +14,7 @@ A data frame with 68,224 rows and 13 columns:
     \item{gender}{respondent gender}
     \item{educ}{respondent education level}
     \item{age}{respondent age}
+    \item{voted}{respondent's voter turnout}
     \item{vote_pres}{respondent's presidential vote}
     \item{vote_pres_dem}{flag indicating Democratic presidential vote choice}
     \item{vote_pres_rep}{flag indicating Republican presidential vote choice}

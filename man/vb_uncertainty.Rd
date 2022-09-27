@@ -10,10 +10,10 @@ vb_uncertainty(object, type, estimates, ...)
 
 \method{vb_uncertainty}{vbdf}(
   vbdf,
-  type = c("continuous", "binned", "discrete"),
+  type = c("discrete", "continuous", "binned"),
   estimates = c("prob", "pr_turnout", "pr_voterep", "pr_votedem", "net_rep"),
   na.rm = FALSE,
-  funcs = c("original", "mean", "median", "low", "high"),
+  funcs = c("mean", "median", "low", "high"),
   low_ci = 0.025,
   high_ci = 0.975,
   bin_col
@@ -55,7 +55,7 @@ should accept a numeric vector input and return a scalar.}
 
 \item{high_ci}{numeric. If you include the string \code{"high"} in \code{funcs}, then use this argument to control the upper bound of the confidence interval.}
 
-\item{bin_col}{character vector naming the columns that contain the bins. Only used if  \code{type} is \code{"binned"}.}
+\item{bin_col}{character vector naming the column(s) that define the bins. Used only when  \code{type} is \code{"binned"}.}
 
 \item{vbdiff}{a \code{vbdiff} object, the result of \code{vb_difference()}.}
 }
