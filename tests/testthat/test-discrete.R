@@ -135,32 +135,7 @@ test_that("Expected results from ANES analysis", {
 
 ##### BOOTSTRAPPING ####
 test_that("Bootstrapping runs", {
-    data(anes)
-    anes_tmp <- filter(anes, year == sample(seq(1976, 2020, 4), 1))
-    cat("########### TESTING WITH ANES", unique(anes_tmp$year), "###########")
 
-    # 2 runs on ANES 2020 ----
-    set.seed(1)
-    vbdf_1a <- vb_discrete(anes_tmp, indep = c("race", "educ"),
-                           dv_vote3 = "vote_pres3",
-                           dv_turnout = "voted", weight = "weight",
-                           boot_iters = 2)
-
-    set.seed(1)
-    vbdf_1b <- vb_discrete(anes_tmp, indep = c("race", "educ"),
-                           dv_vote3 = "vote_pres3",
-                           dv_turnout = "voted", weight = "weight",
-                           boot_iters = 2)
-
-    set.seed(2)
-    vbdf_2 <- vb_discrete(anes_tmp, indep = c("race", "educ"),
-                          dv_vote3 = "vote_pres3",
-                          dv_turnout = "voted", weight = "weight",
-                          boot_iters = 2)
-
-    expect_equal(vbdf_1a, vbdf_1b)
-    expect_equal(nrow(vbdf_1a), nrow(vbdf_2))
-    expect_false(isTRUE(all.equal(vbdf_1a, vbdf_2)))
 
     # Many runs on toy data ----
     data <- data.frame(
@@ -189,8 +164,53 @@ test_that("Bootstrapping runs", {
 
     expect_equal(vbdf_3$prob, vbdf_4$prob)
 
+
+    #### ANES DATA ####
+    data(anes)
+
+    anes_tmp <-
+        filter(anes, year == sample(seq(1976, 2020, 4), 1)) %>%
+        # Small blocs that correctly create NA values
+        filter(!is.na(race), !is.na(educ))
+
+    cat("########### TESTING WITH ANES", unique(anes_tmp$year), "###########")
+
+
+    # 2 runs on ANES 2020 ----
+    set.seed(1)
+    vbdf_1a <- vb_discrete(anes_tmp, indep = c("race", "educ"),
+                           dv_vote3 = "vote_pres3",
+                           dv_turnout = "voted", weight = "weight",
+                           boot_iters = 2)
+
+    set.seed(1)
+    vbdf_1b <- vb_discrete(anes_tmp, indep = c("race", "educ"),
+                           dv_vote3 = "vote_pres3",
+                           dv_turnout = "voted", weight = "weight",
+                           boot_iters = 2)
+
+    set.seed(2)
+    vbdf_2 <- vb_discrete(anes_tmp, indep = c("race", "educ"),
+                          dv_vote3 = "vote_pres3",
+                          dv_turnout = "voted", weight = "weight",
+                          boot_iters = 2)
+
+    expect_equal(vbdf_1a, vbdf_1b)
+    expect_equal(nrow(vbdf_1a), nrow(vbdf_2))
+    expect_false(isTRUE(all.equal(vbdf_1a, vbdf_2)))
+
+
+
     # Vector of boot_iters ----
     set.seed(1)
+    boot_iters <- c(density = 0, turnout = 10, 20)
+
+    expect_error(vb_discrete(anes_tmp, indep = c("race", "educ"),
+                             dv_vote3 = "vote_pres3",
+                             dv_turnout = "voted", weight = "weight",
+                             boot_iters = boot_iters),
+                 "has_name")
+
     boot_iters <- c(density = 0, turnout = 10, vote = 20)
     vbdf <-
         vb_discrete(anes_tmp, indep = c("race", "educ"),
@@ -204,7 +224,7 @@ test_that("Bootstrapping runs", {
     )
 
     expect_setequal(vbdf$resample,
-                    c("original", paste0("resample-", 1:luq)))
+                    c("original", paste0("resample-", 1:max(boot_iters))))
     expect_setequal(vbdf$resample[1:luq], "original")
     expect_setequal(vbdf$resample[(luq+1):(2*luq)], "resample-1")
     expect_setequal(vbdf$prob[(luq+1:nrow(vbdf))], NA)

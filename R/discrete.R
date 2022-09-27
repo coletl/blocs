@@ -118,6 +118,9 @@ vb_discrete <-
                 boot_iters_turnout <-
                 boot_iters_vote <- boot_iters
         } else {
+
+            stopifnot(rlang::has_name(boot_iters, c("density", "turnout", "vote")))
+
             boot_iters_density <-
                 boot_iters[pmatch("density", names(boot_iters))]
             boot_iters_turnout <-
@@ -140,7 +143,7 @@ vb_discrete <-
 
         results_list$prob <-
             apply(itermat_density, 2,
-                  FUN = \(ind)
+                  FUN = function(ind)
 
                   dplyr::slice(data_density, ind) %>%
                       dplyr::ungroup() %>%
@@ -162,7 +165,7 @@ vb_discrete <-
 
         results_list$turnout <-
             apply(itermat_turnout, 2,
-                  FUN = \(ind)
+                  FUN = function(ind)
 
                   calc_turnout(dplyr::slice(data_turnout, ind),
                                indep = indep,
@@ -180,7 +183,7 @@ vb_discrete <-
 
         results_list$vote <-
             apply(itermat_vote, 2,
-                  FUN = \(ind)
+                  FUN = function(ind)
                       calc_vote(dplyr::slice(data_vote, ind),
                                 indep = indep,
                                 dv = dv_vote3, weight = weight_vote)
@@ -345,4 +348,3 @@ lm_vote3 <- function(data, indep, dv, weight) {
 
     return(pred_data)
 }
-
