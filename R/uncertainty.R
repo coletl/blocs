@@ -72,14 +72,16 @@ vb_uncertainty.vbdf <-
         type <- match.arg(type)
         bloc_var <- get_bloc_var(vbdf)
 
+        ind_orig <- which(vbdf$resample == "original")
+
         if(is.character(funcs))
             funcs <-
             list(
-                # resample is a column in vbdf
-                mean     = ~ mean(.x[resample != "original"],     na.rm = na.rm),
-                median   = ~ median(.x[resample != "original"],   na.rm = na.rm),
-                low      = ~ quantile(.x[resample != "original"], prob = low_ci, na.rm = na.rm),
-                high     = ~ quantile(.x[resample != "original"], prob = high_ci, na.rm = na.rm)
+                # original = ~ .x[ind_orig],
+                mean     = ~ mean(.x[-ind_orig],     na.rm = na.rm),
+                median   = ~ median(.x[-ind_orig],   na.rm = na.rm),
+                low      = ~ quantile(.x[-ind_orig], prob = low_ci, na.rm = na.rm),
+                high     = ~ quantile(.x[-ind_orig], prob = high_ci, na.rm = na.rm)
             )[funcs]
 
         switch(type,
@@ -95,9 +97,7 @@ vb_uncertainty.vbdf <-
                            dplyr::summarize(
                                dplyr::across(dplyr::all_of(estimates),
                                              .fns = funcs
-                               ),
-                               # subtract the original data, resample == resample-0
-                               boot_iters  = dplyr::n_distinct(setdiff(resample, "original"))
+                               )
                            )
                    },
                binned =
@@ -120,9 +120,7 @@ vb_uncertainty.vbdf <-
                            dplyr::summarize(
                                dplyr::across(dplyr::all_of(estimates),
                                              .fns = funcs
-                               ),
-                               # subtract the original data, resample == resample-0
-                               boot_iters  = dplyr::n_distinct(setdiff(resample, "resample-0"))
+                               )
                            )
                    },
                continuous =
@@ -135,9 +133,7 @@ vb_uncertainty.vbdf <-
                            dplyr::summarize(
                                dplyr::across(dplyr::all_of(estimates),
                                              .fns = funcs
-                               ),
-                               # subtract the original data, resample == resample-0
-                               boot_iters  = n_distinct(setdiff(resample, "resample-0"))
+                               )
                            )
                    }
                )
