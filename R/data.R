@@ -1,6 +1,8 @@
 #' Sample of 2020 ANES cumulative data file
 #'
 #' Selected columns from the American National Election Studies' 2020 cumulative data file.
+#' The final column is an example of the three-valued variable for voting behavior,
+#' to be passed to the `dv_vote3` argument,
 #'
 #' @format A data frame with 68,224 rows and 13 columns:
 #' \describe{

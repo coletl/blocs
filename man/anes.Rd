@@ -30,5 +30,7 @@ anes
 }
 \description{
 Selected columns from the American National Election Studies' 2020 cumulative data file.
+The final column is an example of the three-valued variable for voting behavior,
+to be passed to the `dv_vote3` argument,
 }
 \keyword{datasets}
