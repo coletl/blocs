@@ -65,8 +65,8 @@ vb_discrete <-
         stopifnot(rlang::has_name(data_vote, dv_vote3))
         stopifnot(rlang::has_name(data_vote, weight))
 
-        if( check_discrete & dplyr::n_distinct(dplyr::select(dplyr::ungroup(data_density), dplyr::all_of(indep))) > 50)
-            stop("More than 25 unique values detected in indep. If you are sure you don't want vb_continuous(), set check_discrete = FALSE.")
+        if( check_discrete & dplyr::n_distinct(collapse::get_vars(data_density, indep)) > 50)
+            stop("More than 25 unique values detected in indep. \nIf you are sure you don't want vb_continuous(), set check_discrete = FALSE.")
 
         # Start with NULL weights = 1, but grab the col if present
         weight_density <- rep(1L, nrow(data_density))
@@ -147,7 +147,7 @@ vb_discrete <-
 
                   dplyr::slice(data_density, ind) %>%
                       dplyr::ungroup() %>%
-                      dplyr::select(dplyr::all_of(indep)) %>%
+                      collapse::get_vars(data_density, indep)
 
                       wtd_table(weight = weight_density,
                                 prop = TRUE, return_tibble = TRUE) %>%
