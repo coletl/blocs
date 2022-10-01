@@ -43,7 +43,10 @@ anes_trim <-
         # Voting behavior
         turnout = VCF0703,
         vote_pres = VCF0704
-    )
+    ) %>%
+    # Drop years without presidential vote choice
+    filter(year %in% seq(1952, 2020, 4))
+
 
 # Recode responses ----
 

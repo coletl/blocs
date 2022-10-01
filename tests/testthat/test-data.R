@@ -13,4 +13,10 @@ test_that("Data properly prepared", {
                         "vote_pres", "voted", "vote_pres_dem", "vote_pres_rep",
                         "vote_pres3")))
 
+    na_check <-
+        group_by(anes, year) %>%
+        summarize(across(everything(), ~ mean(is.na(.x))))
+
+    expect_false(any(na_check == 1))
+
 })
