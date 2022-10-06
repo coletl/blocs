@@ -2,10 +2,7 @@
 % Please edit documentation in R/continuous.R
 \name{wtd_quantile}
 \alias{wtd_quantile}
-\title{Weighted quantiles ' ' This function calls \link[collapse]{fnth} repeatedly
-over a vector of probabilities to produce output like \link[stats]{quantile}.
-This function is fast, with minimal dependencies, but does not accept negative weights.
-Importantly, this function does not call Hmisc::wtd.quantile, which fails for non-integer weights.}
+\title{Weighted quantiles}
 \usage{
 wtd_quantile(x, probs = seq(0, 1, 0.25), weight, na.rm = FALSE, ...)
 }
@@ -21,7 +18,7 @@ wtd_quantile(x, probs = seq(0, 1, 0.25), weight, na.rm = FALSE, ...)
 \item{...}{further arguments passed to \link[collapse]{fnth}.}
 }
 \description{
-Weighted quantiles ' ' This function calls \link[collapse]{fnth} repeatedly
+This function calls \link[collapse]{fnth} repeatedly
 over a vector of probabilities to produce output like \link[stats]{quantile}.
 This function is fast, with minimal dependencies, but does not accept negative weights.
 Importantly, this function does not call Hmisc::wtd.quantile, which fails for non-integer weights.

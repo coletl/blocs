@@ -2,25 +2,25 @@
 % Please edit documentation in R/continuous.R
 \name{estimate_density}
 \alias{estimate_density}
-\title{Estimate continuous density}
+\title{Estimate density}
 \usage{
-estimate_density(x, min, max, n_points = 100, w, ...)
+estimate_density(x, min, max, n_points = 100, w = NULL, ...)
 }
 \arguments{
-\item{x}{numeric vector}
+\item{x}{numeric vector or matrix}
 
-\item{min}{scalar, lower bound of evaluation points}
+\item{min}{numeric vector giving the lower bound of evaluation points for each variable in \code{x}}
 
-\item{max}{scalar, upper bound of evaluation points}
+\item{max}{numeric vector giving the upper bound of evaluation points for each variable in \code{x}}
 
 \item{n_points}{number of evaluation points (estimates)}
 
-\item{w}{vector of weights}
+\item{w}{vector of weights. Default uses uniform weighting.}
 
 \item{...}{further arguments to pass to \link[ks]{kde}}
 }
 \description{
-Run \link[ks]{kde} to estimate the
-weighted density of \code{x} at \code{n_points}
+Run \link[ks]{kde} for weighted denisty estimation
+of a  \code{x} at \code{n_points}
 evenly spaced points between \code{min} and {max}.
 }

@@ -10,13 +10,13 @@ vb_continuous(
   data_turnout = data,
   data_vote = data,
   indep,
-  dv_vote3 = NULL,
-  dv_turnout = NULL,
+  dv_vote3,
+  dv_turnout,
   weight = NULL,
   min_val = NULL,
   max_val = NULL,
   n_points = 100,
-  boot_iters = c(density = 1000, turnout = 1000, vote = 1000),
+  boot_iters = FALSE,
   verbose = FALSE,
   ...
 )
@@ -33,33 +33,32 @@ columns named by \code{dv_turnout}, \code{indep} and
 \code{weight}.}
 
 \item{data_vote}{data.frame of blocs' vote choice data. Must include any
-columns named by \code{dv_turnout}, \code{dv_vote3}, \code{indep}, and \code{weight}.}
+columns named by \code{dv_vote3}, \code{indep}, and \code{weight}.}
 
 \item{indep}{string, column name of the independent variable defining
 discrete voting blocs.}
 
-\item{dv_vote3}{string, column name of the dependent variable coded as
+\item{dv_vote3}{string, column name of the dependent variable in \code{data_vote}, coded as
 follows: -1 for Democrat vote choice, 0 for no or third-party vote, 1 for
 Republican vote choice.}
 
 \item{dv_turnout}{string, column name of the dependent variable flagging
-voter turnout in \code{data_turnout}. That column must be coded 0 =  no vote, 1 = voted.
-\code{data_vote} data sets.}
+voter turnout in \code{data_turnout}. That column must be coded 0 =  no vote, 1 = voted.}
 
 \item{weight}{optional string naming the column of sample weights.}
 
-\item{min_val}{scalar, lower bound for density estimation. See
+\item{min_val}{numeric vector of the same length as \code{indep}, Lower bound for the density estimation of each respective \code{indep}. See
 \link{estimate_density}.}
 
-\item{max_val}{scalar, upper bound for density estimation. See
+\item{max_val}{numeric vector of the same length as \code{indep}, Upper bound for the density estimation of each respective \code{indep}. See
 \link{estimate_density}.}
 
 \item{n_points}{scalar, number of points at which to estimate density. See
 \link{estimate_density}.}
 
-\item{boot_iters}{numeric, number of bootstrap iterations for uncertainty
-estimation. You may supply a numeric vector of length 1 or a named vector specifying
-the number of iterations for each dataset.}
+\item{boot_iters}{integer, number of bootstrap iterations for uncertainty
+estimation. The default \code{FALSE} is equivalent to 0 and does not estimate
+uncertainty.}
 
 \item{verbose}{logical, whether to print iteration number.}
 
