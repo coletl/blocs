@@ -4,7 +4,12 @@
 \alias{vb_difference}
 \title{Calculate differences in bloc contributions}
 \usage{
-vb_difference(vbdf, diff_col, sort_col = "year")
+vb_difference(
+  vbdf,
+  diff_col = intersect(names(vbdf), c("prob", "pr_turnout", "pr_votedem", "pr_voterep",
+    "cond_rep", "net_rep")),
+  sort_col = "year"
+)
 }
 \arguments{
 \item{vbdf}{data.frame holding the results of voting bloc analyses.}

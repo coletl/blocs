@@ -20,7 +20,13 @@
 #'
 #' @export
 
-vb_difference <- function(vbdf, diff_col, sort_col = "year"){
+vb_difference <-
+    function(vbdf,
+             diff_col = intersect(names(vbdf),
+                                  c("prob", "pr_turnout",
+                                    "pr_votedem", "pr_voterep",
+                                    "cond_rep", "net_rep")),
+             sort_col = "year"){
 
     stopifnot(length(sort_col) == 1)
     check_vbdf(vbdf)
@@ -40,7 +46,7 @@ vb_difference <- function(vbdf, diff_col, sort_col = "year"){
                             ) %>%
         dplyr::arrange(dplyr::all_of(sort_col)) %>%
 
-        dplyr::mutate(
+        dplyr::transmute(
             dplyr::across(
                 dplyr::all_of(diff_col),
                 .names = "diff_{.col}",
@@ -48,13 +54,12 @@ vb_difference <- function(vbdf, diff_col, sort_col = "year"){
             comp = sprintf("%s-%s",
                            dplyr::lead(.data[[sort_col]]), .data[[sort_col]])
         ) %>%
-        ungroup()
+        collapse::colorderv(neworder = c("comp", resample_col, bloc_var)) %>%
+        dplyr::ungroup()
 
     # Remove invalid differences (last rows of each group)
-    diff_cols <- grep("diff_", names(vbdiff), value = TRUE)
-    complete_ind <- which(stats::complete.cases(select(vbdiff, all_of(diff_cols))))
-
-    vbdiff <- vbdiff[complete_ind, ]
+    bad_diff <- grepl("NA", vbdiff[["comp"]])
+    vbdiff <- filter(vbdiff, !bad_diff)
 
     # group_by removed the vbdf class and attributes
     out <- new_vbdiff(x = vbdiff,
