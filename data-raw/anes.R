@@ -57,26 +57,26 @@ anes <-
                            `9` = NA_character_, `0` = NA_character_
            ),
 
-           educ   = recode(educ,
-                           `1` = "HS or less", `2` = "HS or less",
-                           `3` = "some college", `4` = "college",
-                           .default = NA_character_
+           educ   = recode_factor(educ,
+                                  `1` = "HS or less", `2` = "HS or less",
+                                  `3` = "some college", `4` = "college",
+                                  .default = NA_character_, .ordered = TRUE
            ),
 
            gender = case_when(gender == 1 ~ "male",
                               gender == 2 ~ "female",
                               gender == 3 ~ "other"
-           ),
+           ) %>% factor(),
            age    = case_when(age == 0 ~ NA_real_,
                               TRUE ~ age),
 
-           voted  = as.numeric(turnout == 3),
+           voted  = as.integer(turnout == 3),
 
            vote_pres = recode(vote_pres,
                               `1` = "dem", `2` = "rep",
                               `3` = "third"),
-           vote_pres_dem = as.numeric(vote_pres == "dem"),
-           vote_pres_rep = as.numeric(vote_pres == "rep"),
+           vote_pres_dem = as.integer(vote_pres == "dem"),
+           vote_pres_rep = as.integer(vote_pres == "rep"),
 
            vote_pres3    = case_when(vote_pres == "dem" ~ -1L,
                                      vote_pres == "rep" ~  1L,

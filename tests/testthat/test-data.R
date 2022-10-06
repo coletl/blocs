@@ -3,7 +3,7 @@ test_that("Data properly prepared", {
 
     expect_s3_class(anes, "data.frame")
 
-    expect_equal(dim(anes), c(68224, 12))
+    expect_equal(dim(anes), c(46838, 12))
 
     expect_false(anyNA(anes %>% select(year, respid, weight)))
 
