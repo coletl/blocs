@@ -10,8 +10,8 @@ vb_discrete(
   data_turnout = data,
   data_vote = data,
   indep,
-  dv_vote3 = NULL,
-  dv_turnout = NULL,
+  dv_vote3,
+  dv_turnout,
   weight = NULL,
   boot_iters = FALSE,
   net_rep_only = FALSE,
@@ -31,18 +31,17 @@ columns named by \code{dv_turnout}, \code{indep} and
 \code{weight}.}
 
 \item{data_vote}{data.frame of blocs' vote choice data. Must include any
-columns named by \code{dv_turnout}, \code{dv_vote3}, \code{indep}, and \code{weight}.}
+columns named by \code{dv_vote3}, \code{indep}, and \code{weight}.}
 
 \item{indep}{string, column name of the independent variable defining
 discrete voting blocs.}
 
-\item{dv_vote3}{string, column name of the dependent variable coded as
+\item{dv_vote3}{string, column name of the dependent variable in \code{data_vote}, coded as
 follows: -1 for Democrat vote choice, 0 for no or third-party vote, 1 for
 Republican vote choice.}
 
 \item{dv_turnout}{string, column name of the dependent variable flagging
-voter turnout in \code{data_turnout}. That column must be coded 0 =  no vote, 1 = voted.
-\code{data_vote} data sets.}
+voter turnout in \code{data_turnout}. That column must be coded 0 =  no vote, 1 = voted.}
 
 \item{weight}{optional string naming the column of sample weights.}
 

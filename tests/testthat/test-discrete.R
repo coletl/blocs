@@ -59,7 +59,8 @@ test_that("Discrete analysis runs with and without weights", {
     expect_equal(vbdf_wtd$pr_turnout, check$pr_turnout)
     expect_equal(vbdf$pr_voterep,     check$pr_voterep)
     expect_equal(vbdf$pr_votedem,     check$pr_votedem)
-    expect_equal(vbdf_wtd$net_rep,    (check$pr_voterep - check$pr_votedem) * (check$prob * data$weight) / sum(check$prob * data$weight))
+    expect_equal(vbdf_wtd$net_rep,
+                 (check$pr_voterep - check$pr_votedem) * check$pr_turnout * (check$prob * data$weight) / sum(check$prob * data$weight))
 }
 )
 
@@ -69,7 +70,7 @@ test_that("Expected results from ANES analysis", {
     data(anes)
     anes_tmp <- filter(anes, year == sample(seq(1976, 2020, 4), 1))
 
-    cat("########### TESTING WITH ANES", unique(anes_tmp$year), "###########")
+    cat("########### TESTING WITH ANES", unique(anes_tmp$year), "###########\n")
 
 
     vbdf <- vb_discrete(anes_tmp, indep = "race",
@@ -79,7 +80,7 @@ test_that("Expected results from ANES analysis", {
 
 
     check  <-
-        filter(anes_tmp, !is.na(race)) %>%
+        anes_tmp %>%
         group_by(race) %>%
         summarize(
             prob = sum(weight) / sum(anes_tmp$weight),
@@ -87,48 +88,49 @@ test_that("Expected results from ANES analysis", {
             pr_voterep = weighted.mean(vote_pres3 == 1, weight, na.rm = TRUE),
             pr_votedem = weighted.mean(vote_pres3 == -1, weight, na.rm = TRUE)
         ) %>%
-        mutate(race = as.factor(race),
+        mutate(resample = "original",
+               race = as.factor(race),
                cond_rep = pr_voterep - pr_votedem,
-               net_rep = prob * (cond_rep))
+               net_rep = prob * pr_turnout * cond_rep) %>%
+        collapse::colorderv(neworder = c("resample", "race", "educ",
+                                         "prob", "pr_turnout",
+                                         "pr_voterep", "pr_votedem",
+                                         "cond_rep", "net_rep"))
 
-    expect_equal(vbdf %>% select(-resample) %>% filter(!is.na(race)),
-                 check,
-                 ignore_attr = TRUE, tolerance = 0.01)
+    expect_equal(vbdf, check, ignore_attr = TRUE)
 
+    # Multivariate blocs ----
 
-
-
-    vbdf <- vb_discrete(anes_tmp, indep = c("race", "educ"),
-                        dv_vote3 = "vote_pres3",
-                        dv_turnout = "voted", weight = "weight",
-                        boot_iters = FALSE) %>%
-        arrange(as.character(race), desc(as.character(educ)))
+    vbdf <-
+        anes_tmp %>%
+        vb_discrete(indep = c("race", "educ"),
+                    dv_vote3 = "vote_pres3",
+                    dv_turnout = "voted", weight = "weight",
+                    boot_iters = FALSE)
 
 
     check  <-
-        filter(anes_tmp, !is.na(race), !is.na(educ)) %>%
-        group_by(race, educ) %>%
+        group_by(anes_tmp, race, educ) %>%
         summarize(
             prob = sum(weight) / sum(anes_tmp$weight),
             pr_turnout = weighted.mean(voted, weight, na.rm = TRUE),
             pr_voterep = weighted.mean(vote_pres3 == 1, weight, na.rm = TRUE),
             pr_votedem = weighted.mean(vote_pres3 == -1, weight, na.rm = TRUE)
         ) %>%
-        mutate(race = as.factor(race),
-               educ = as.factor(educ),
+        mutate(resample = "original",
+               race = factor(race),
                cond_rep = pr_voterep - pr_votedem,
                net_rep = prob * pr_turnout * cond_rep) %>%
-        arrange(as.character(race), desc(as.character(educ)))
-
+        collapse::colorderv(neworder = c("resample", "race", "educ",
+                                         "prob", "pr_turnout",
+                                         "pr_voterep", "pr_votedem",
+                                         "cond_rep", "net_rep")) %>%
+        collapse::roworder(resample, race, educ) %>%
+        ungroup()
     # Some problems with density estimation for check.
-    # blocs' prob calculation is against questionr::wtd.table()
+    # blocs' prob calculation is tested against questionr::wtd.table()
     # in separate test script
-    expect_equal(vbdf %>% ungroup() %>%
-                     filter(!is.na(race), !is.na(educ)) %>%
-                     select(pr_turnout, pr_voterep, pr_votedem),
-                 check %>% ungroup() %>%
-                     select(pr_turnout, pr_voterep, pr_votedem),
-                 ignore_attr = TRUE, tolerance = 0.001)
+    expect_equal(vbdf, check, ignore_attr = TRUE)
 
 }
 )
@@ -173,7 +175,7 @@ test_that("Bootstrapping runs", {
         # Small blocs that correctly create NA values
         filter(!is.na(race), !is.na(educ))
 
-    cat("########### TESTING WITH ANES", unique(anes_tmp$year), "###########")
+    cat("########### TESTING WITH ANES", unique(anes_tmp$year), "###########\n")
 
 
     # 2 runs on ANES 2020 ----
@@ -213,27 +215,18 @@ test_that("Bootstrapping runs", {
 
     boot_iters <- c(density = 0, turnout = 10, vote = 20)
     vbdf <-
-        vb_discrete(anes_tmp, indep = c("race", "educ"),
-                    dv_vote3 = "vote_pres3",
-                    dv_turnout = "voted", weight = "weight",
-                    boot_iters = boot_iters)
+        expect_warning(
+            vb_discrete(anes_tmp, indep = c("race", "educ"),
+                        dv_vote3 = "vote_pres3",
+                        dv_turnout = "voted", weight = "weight",
+                        boot_iters = boot_iters),
+            "No resampling performed for density data"
+        )
 
-    luq <- nrow(collapse::funique(select(anes_tmp, race, educ)))
-    expect_equal(nrow(collapse::funique(select(vbdf, race, educ))),
-                 nrow(collapse::funique(select(filter(vbdf, resample == "original"), race, educ)))
+    expect_equal(
+        length(unique(interaction(vbdf$race, vbdf$educ))),
+        length(unique(vbdf$prob))
     )
-
-    expect_setequal(vbdf$resample,
-                    c("original", paste0("resample-", 1:max(boot_iters))))
-    expect_setequal(vbdf$resample[1:luq], "original")
-    expect_setequal(vbdf$resample[(luq+1):(2*luq)], "resample-1")
-    expect_setequal(vbdf$prob[(luq+1:nrow(vbdf))], NA)
-
-    expect_setequal(vbdf$pr_turnout[1:luq], NA)
-    expect_false(any(is.na(vbdf$pr_turnout[(luq+1):(luq+luq*boot_iters["turnout"])])))
-    expect_setequal(vbdf$pr_turnout[(luq+luq*boot_iters["turnout"] + 1):nrow(vbdf)], NA)
-
-    expect_false(any(is.na(vbdf$cond_rep[(luq+1):nrow(vbdf)])))
 }
 )
 

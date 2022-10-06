@@ -11,24 +11,18 @@
 #'   columns named by \code{dv_turnout}, \code{indep} and
 #'   \code{weight}.
 #' @param data_vote      data.frame of blocs' vote choice data. Must include any
-#'   columns named by \code{dv_turnout}, \code{dv_vote3}, \code{indep}, and \code{weight}.
+#'   columns named by \code{dv_vote3}, \code{indep}, and \code{weight}.
 #' @param indep      string, column name of the independent variable defining
 #'   discrete voting blocs.
-#' @param dv_vote3        string, column name of the dependent variable coded as
+#' @param dv_vote3        string, column name of the dependent variable in \code{data_vote}, coded as
 #'   follows: -1 for Democrat vote choice, 0 for no or third-party vote, 1 for
 #'   Republican vote choice.
 #' @param dv_turnout     string, column name of the dependent variable flagging
 #'   voter turnout in \code{data_turnout}. That column must be coded 0 =  no vote, 1 = voted.
-#'   \code{data_vote} data sets.
 #' @param weight     optional string naming the column of sample weights.
 #' @param boot_iters integer, number of bootstrap iterations for uncertainty
 #'   estimation. The default \code{FALSE} is equivalent to 0 and does not estimate
 #'   uncertainty.
-#' @param net_rep_only   logical, whether to return only composition and net Republican votes.
-#'                       The default \code{FALSE} computes and returns the other components,
-#'                       turnout and vote choice. Set to \code{TRUE} to estimate a linear model.
-#'                       combining turnout and vote choice estimation.
-#'
 #' @param verbose        logical, whether to print iteration number.
 #' @param check_discrete logical, whether to check if \code{indep} is a discrete variable.
 #'
@@ -41,9 +35,8 @@
 vb_discrete <-
     function(data,
              data_density = data, data_turnout = data, data_vote = data,
-             indep, dv_vote3 = NULL, dv_turnout = NULL,
+             indep, dv_vote3, dv_turnout,
              weight = NULL, boot_iters = FALSE,
-             net_rep_only = FALSE,
              verbose = FALSE, check_discrete = TRUE){
 
         if(is_grouped_df(data_density)){
@@ -84,7 +77,7 @@ vb_discrete <-
             if(rlang::has_name(data_vote, weight))
                 weight_vote    <- data_vote[[weight]]
 
-            # Check that weights greater than zero
+            # Check for negative weights
             if(
                 any(
                     weight_density <= 0,
@@ -98,19 +91,21 @@ vb_discrete <-
         # Force independent variables to be discrete
         data_density <-
             data_density %>%
-            collapse::ftransformv(vars = indep, FUN =  collapse::qF)
+            collapse::ftransformv(vars = indep,
+                                  FUN  =  function(x)
+                                      if(is.factor(x)) x else collapse::qF(x))
 
         data_turnout <-
             data_turnout %>%
-            collapse::ftransformv(vars = indep, FUN =  collapse::qF)
+            collapse::ftransformv(vars = indep,
+                                  FUN  =  function(x)
+                                      if(is.factor(x)) x else collapse::qF(x))
 
         data_vote <-
             data_vote %>%
-            collapse::ftransformv(vars = indep, FUN =  collapse::qF)
-
-        results_base <-
-            collapse::get_vars(data_density, indep) %>%
-            collapse::funique()
+            collapse::ftransformv(vars = indep,
+                                  FUN  =  function(x)
+                                      if(is.factor(x)) x else collapse::qF(x))
 
         # Boostrap setup ----
         if(length(boot_iters) == 1){
@@ -129,6 +124,10 @@ vb_discrete <-
                 boot_iters[pmatch("vote", names(boot_iters))]
         }
 
+        results_base <-
+            collapse::get_vars(data_density, indep) %>%
+            collapse::funique()
+
         results_list <- list()
 
         # Probability mass calculation ----
@@ -145,9 +144,9 @@ vb_discrete <-
             apply(itermat_density, 2,
                   FUN = function(ind)
 
-                  dplyr::slice(data_density, ind) %>%
+                      dplyr::slice(data_density, ind) %>%
                       dplyr::ungroup() %>%
-                      collapse::get_vars(data_density, indep)
+                      collapse::get_vars(indep) %>%
 
                       wtd_table(weight = weight_density,
                                 prop = TRUE, return_tibble = TRUE) %>%
@@ -167,9 +166,9 @@ vb_discrete <-
             apply(itermat_turnout, 2,
                   FUN = function(ind)
 
-                  calc_turnout(dplyr::slice(data_turnout, ind),
-                               indep = indep,
-                               dv = dv_turnout, weight = weight_turnout)
+                      calc_turnout(dplyr::slice(data_turnout, ind),
+                                   indep = indep,
+                                   dv = dv_turnout, weight = weight_turnout)
 
             ) %>%
             bind_rows(.id = "resample")
@@ -195,11 +194,46 @@ vb_discrete <-
             dplyr::full_join(results_base, results_list$prob, by = indep) %>%
             dplyr::full_join(results_list$turnout,
                              by = c("resample", indep)) %>%
-            dplyr::full_join(results_list$vote, by = c("resample", indep)) %>%
-            # Formatting
-            collapse::roworderv(cols = c("resample", indep)) %>%
-            collapse::fmutate(resample = gsub("-0+", "-", resample),
-                              net_rep = prob * cond_rep)
+            dplyr::full_join(results_list$vote, by = c("resample", indep))
+
+        # If at least one data set not resampled
+        # populate missing estimates with the original-sample results
+        contains_original <- "original" %in% results$resample
+        if(contains_original && !all(boot_iters == 0)){
+            estim_nms <- c(prob = "density", pr_turnout = "turnout",
+                           net_rep = "vote choice")
+            vbdf_orig <- dplyr::filter(results, resample == "original")
+
+            data_orig <- stats::na.omit(unique(estim_nms[names(which(!sapply(vbdf_orig, function(x) all(is.na(x)))))]))
+            estim_orig <- names(estim_nms[estim_nms == data_orig])
+
+            warning(
+                sprintf("No resampling performed for %s data.\n  Populating %s estimates assuming zero uncertainty.",
+                        paste(data_orig, collapse = ", "),
+                        paste(estim_orig, collapse = ", "))
+            )
+
+            # Merge original-sample estimates into resamples
+            vbdf_orig <-
+                dplyr::select(vbdf_orig,
+                              all_of(c(indep, estim_orig)))
+
+            results <-
+                dplyr::filter(results, resample != "original") %>%
+                dplyr::select(-all_of(estim_orig)) %>%
+                dplyr::left_join(vbdf_orig, by = indep)
+        }
+
+        # Calculate net Republican votes
+        results <-
+            collapse::fmutate(results,
+                              resample = gsub("-0+", "-", resample),
+                              net_rep = prob * pr_turnout * cond_rep) %>%
+            collapse::colorderv(neworder = c("resample", indep,
+                                             "prob", "pr_turnout",
+                                             "pr_voterep", "pr_votedem",
+                                             "cond_rep", "net_rep")) %>%
+            collapse::roworderv(cols = c("resample", indep))
 
 
         out <-
@@ -302,49 +336,4 @@ calc_vote <- function(data, indep, dv, weight){
     out$cond_rep <- out$pr_voterep - out$pr_votedem
 
     return(out)
-}
-
-lm_vote3 <- function(data, indep, dv, weight) {
-    # Fit vote choice
-    indep_str <- paste(indep, collapse = " * ")
-    form_dv3 <- stats::as.formula(sprintf("%s ~ %s", dv, indep_str))
-
-    pred_data <-
-        collapse::funique(
-            collapse::get_vars(data, indep)
-        )
-
-    # Use tryCatch() to return NA when lacking variation
-    lm_dv3   <-
-        tryCatch(
-            stats::lm(form_dv3, data = data, weight = weight),
-            error = function(e) NULL
-        )
-
-    pred_data$cond_rep <- stats::predict(lm_dv3, newdata = pred_data)
-
-    # if( !is.null(lm_dv3) ){
-    #     # Model fit successfully
-    #     # but resampled data might be missing levels
-    #     pred_data$cond_rep <-
-    #         tryCatch(
-    #             expr = {
-    #                 stats::predict(lm_dv3, newdata = pred_data)
-    #             },
-    #             error = function(e){
-    #                 tmp_tbl <- pred_data
-    #
-    #                 # remove factor levels not in (prob. resampled) data
-    #                 miss_ind <- which( ! collapse::finteraction(tmp_tbl[indep]) %in%
-    #                                        collapse::finteraction(data[indep]))
-    #                 miss_lvls <- tmp_tbl[miss_ind, ]
-    #                 tmp_tbl[miss_ind, indep] <- NA_character_
-    #
-    #                 stats::predict(lm_dv3, newdata = tmp_tbl)
-    #             }
-    #         )
-    # Model failed
-    # } else pred_data$cond_rep <- NA
-
-    return(pred_data)
 }
