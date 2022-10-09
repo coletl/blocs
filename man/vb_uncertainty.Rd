@@ -11,7 +11,8 @@ vb_uncertainty(object, type, estimates, ...)
 \method{vb_uncertainty}{vbdf}(
   vbdf,
   type = c("discrete", "continuous", "binned"),
-  estimates = c("prob", "pr_turnout", "pr_voterep", "pr_votedem", "net_rep"),
+  estimates = intersect(names(vbdf), c("prob", "pr_turnout", "pr_votedem",
+    "pr_voterep", "cond_rep", "net_rep")),
   na.rm = FALSE,
   funcs = c("mean", "median", "low", "high"),
   low_ci = 0.025,
@@ -21,11 +22,12 @@ vb_uncertainty(object, type, estimates, ...)
 
 \method{vb_uncertainty}{vbdiff}(
   vbdiff,
-  type = c("continuous", "binned", "discrete"),
-  estimates,
+  type,
+  estimates = intersect(names(vbdiff), c("prob", "pr_turnout", "pr_votedem",
+    "pr_voterep", "cond_rep", "net_rep")),
   bin_col,
   na.rm = FALSE,
-  funcs = c("original", "mean", "median", "low", "high"),
+  funcs = c("mean", "median", "low", "high"),
   low_ci = 0.025,
   high_ci = 0.975
 )

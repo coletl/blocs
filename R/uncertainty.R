@@ -36,10 +36,9 @@ vb_uncertainty <- function(object, type, estimates, ...) UseMethod("vb_uncertain
 
 #' @describeIn vb_uncertainty Uncertainty for a vbdf object
 #'
-#' @param vbdf a \code{vbdf} object, usually the result of \code{vb_discrete} or
-#'   \code{vb_continuous}.
+#' @param vbout a \code{vbdf} or \code{vbdiff} object, usually the output of \code{vb_discrete}, \code{vb_continuous}, or \code{vb_difference}.
 #' @param type a string naming the type of independent variable summary. Use
-#'   \code{"binned"} when working with binned output of \code{vb_continuous()}.
+#'   \code{"binned"} when using the output of \code{vb_continuous()} plus a binned version of the continuous bloc variable.
 #' @param estimates character vector naming columns for which to calculate
 #'   uncertainty estimates.
 #' @param na.rm logical indicating whether to remove \code{NA} values in
@@ -56,32 +55,34 @@ vb_uncertainty <- function(object, type, estimates, ...) UseMethod("vb_uncertain
 #' @export vb_uncertainty.vbdf
 #' @export
 
-vb_uncertainty.vbdf <-
-    function(vbdf, type = c("discrete", "continuous", "binned"),
-             estimates = c("prob", "pr_turnout", "pr_voterep", "pr_votedem", "net_rep"),
+vb_uncertainty <-
+    function(vbout, type = c("discrete", "continuous", "binned"),
+             estimates = intersect(names(vbdf),
+                                   c("prob", "pr_turnout",
+                                     "pr_votedem", "pr_voterep",
+                                     "cond_rep", "net_rep")),
              na.rm = FALSE,
              funcs = c("mean", "median", "low", "high"),
              low_ci = 0.025, high_ci = 0.975,
              bin_col){
 
-        # check_vbdiff(vbdiff)
-        if(length(type) > 1) type <- get_var_type(vbdf)
+        check_vbdf(vbdf)
+        if(missing(type))
+            type <- get_var_type(vbdf)
+        else type <- match.arg(type, c("discrete", "binned", "continuous"))
 
         stopifnot(rlang::has_name(vbdf, estimates))
 
         type <- match.arg(type)
         bloc_var <- get_bloc_var(vbdf)
 
-        ind_orig <- which(vbdf$resample == "original")
-
         if(is.character(funcs))
             funcs <-
             list(
-                # original = ~ .x[ind_orig],
-                mean     = ~ mean(.x[-ind_orig],     na.rm = na.rm),
-                median   = ~ median(.x[-ind_orig],   na.rm = na.rm),
-                low      = ~ quantile(.x[-ind_orig], prob = low_ci, na.rm = na.rm),
-                high     = ~ quantile(.x[-ind_orig], prob = high_ci, na.rm = na.rm)
+                mean     = ~ mean(.x,     na.rm = na.rm),
+                median   = ~ median(.x,   na.rm = na.rm),
+                low      = ~ quantile(.x, prob = low_ci, na.rm = na.rm),
+                high     = ~ quantile(.x, prob = high_ci, na.rm = na.rm)
             )[funcs]
 
         switch(type,
@@ -147,102 +148,4 @@ vb_uncertainty.vbdf <-
     }
 
 
-
-#' @describeIn vb_uncertainty Uncertainty for a vbdiff object
-#'
-#' @param vbdiff    a \code{vbdiff} object, the result of \code{vb_difference()}.
-#' @return A \code{vbdiff} object with additional columns for each combination
-#'   of \code{estimates} and \code{funcs}.
-#'
-#' @import dplyr
-#' @export vb_uncertainty.vbdiff
-#' @export
-
-vb_uncertainty.vbdiff <-
-    function(vbdiff, type = c("continuous", "binned", "discrete"),
-             estimates, bin_col, na.rm = FALSE,
-             funcs = c("original", "mean", "median", "low", "high"),
-             low_ci = 0.025, high_ci = 0.975){
-
-        if(missing(estimates)) stop("Missing required argument estimates")
-
-        type <- match.arg(type)
-
-        bloc_var <- get_bloc_var(vbdiff)
-
-        funcs <-
-            list(
-                original = ~ as.numeric(.x[resample == "resample-0"]),
-                mean     = ~ mean(.x, na.rm = na.rm),
-                median   = ~ median(.x, na.rm = na.rm),
-                low      = ~ quantile(.x, prob  = low_ci, na.rm = na.rm),
-                high     = ~ quantile(.x, prob = high_ci, na.rm = na.rm)
-            )[funcs]
-
-
-        switch(type,
-               discrete =
-                   {
-                       uncertainty_summary <-
-                           # For each subgroup, calculate summary stats across iterations
-                           vbdiff %>%
-                           group_by(across(all_of(c("comp", bloc_var)))) %>%
-                           summarize(
-                               across(all_of(estimates),
-                                      .fns = funcs
-                               ),
-                               boot_iters  = n_distinct(resample)
-                           )
-                   },
-               binned =
-                   {
-                       if(missing(bin_col)) stop("Missing required argument bin_col")
-
-                       uncertainty_summary <-
-
-                           vbdiff %>%
-                           # Begin by integrating estimates within bins and iteration
-                           group_by(across(all_of(c("comp", "resample", bin_col)))) %>%
-
-                           summarize(
-                               across(all_of(estimates),
-                                      sum),
-                           ) %>%
-
-                           # For each subgroup, calculate summary stats across iterations
-                           group_by(across(all_of(c("comp", bin_col)))) %>%
-                           summarize(
-                               across(all_of(estimates),
-                                      .fns = funcs
-                               ),
-                               boot_iters  = n_distinct(resample)
-                           )
-                   },
-
-               continuous =
-                   {
-
-                       uncertainty_summary <-
-                           vbdiff %>%
-                           # Across iterations, calculate summary stats
-                           group_by(across(all_of(c("comp", bloc_var)))) %>%
-
-                           summarize(
-                               across(all_of(estimates),
-                                      .fns = funcs
-                               ),
-                               boot_iters  = n_distinct(resample)
-                           )
-                   }
-               )
-
-        # Use custom class to protect attributes from dplyr verbs
-        out <-
-            new_vbdiff(x = uncertainty_summary, bloc_var = bloc_var,
-                       var_type = get_var_type(vbdiff),
-                       diff_col  = attr(vbdiff, "diff_col"))
-
-        return(out)
-
-    }
 
