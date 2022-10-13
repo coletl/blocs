@@ -38,27 +38,58 @@ check_vbdf <- function(x, tol = sqrt(.Machine$double.eps)){
 
     stopifnot(rlang::has_name(x, get_bloc_var(x)))
 
-    stopifnot(
-        dplyr::summarize(x,
-                         dplyr::across(dplyr::matches("^net_rep"),
-                                ~ all(
-                                    .x > -1 - tol,
-                                    .x <  1 + tol
-                                    )
-                                )
-                         ) %>%
+    if(
+        isFALSE(
+            dplyr::summarize(x,
+                             dplyr::across(dplyr::matches("^prob"),
+                                           ~ all(.x > 0 - tol,
+                                                 .x < 1 + tol)
+                             )
+            ) %>%
             all(na.rm = TRUE)
-    )
+        )
+    ) stop("Found a density estimate outside of normal range.")
 
-    stopifnot(
-        dplyr::summarize(x,
-                         dplyr::across(dplyr::matches("^prob"),
-                                ~ all(.x > 0 - tol,
-                                      .x < 1 + tol)
-                                )
-                         ) %>%
+    # Allow modeled probabilities out of normal range
+    pr_lowbound <- ifelse(get_var_type(x) == "continuous", -1, 0)
+    pr_uppbound <- ifelse(get_var_type(x) == "continuous",  2, 1)
+    if(
+        isFALSE(
+            dplyr::summarize(x,
+                             dplyr::across(dplyr::matches("^pr_turnout"),
+                                           ~ all(.x > pr_lowbound - tol,
+                                                 .x < pr_uppbound + tol)
+                             )
+            ) %>%
             all(na.rm = TRUE)
-    )
+        )
+    ) stop("Found a turnout probability outside of expected range.")
+
+    if(
+        isFALSE(
+            dplyr::summarize(x,
+                             dplyr::across(dplyr::matches("^pr_vote"),
+                                           ~ all(.x > pr_lowbound - tol,
+                                                 .x < pr_uppbound + tol)
+                             )
+            ) %>%
+            all(na.rm = TRUE)
+        )
+    ) stop("Found a vote choice probability outside of expected range.")
+
+    if(
+        isFALSE(
+            dplyr::summarize(x,
+                             dplyr::across(dplyr::matches("^net_rep"),
+                                           ~ all(
+                                               .x > -1 - tol,
+                                               .x <  1 + tol
+                                           )
+                             )
+            ) %>%
+            all(na.rm = TRUE)
+        )
+    ) stop("Found a value of net Republican votes outside of expected range.")
 
     return(TRUE)
 }
@@ -67,12 +98,12 @@ check_vbdf <- function(x, tol = sqrt(.Machine$double.eps)){
 #'
 #' Create a vbdf object holding bloc-level estimates of composition, turnout,
 #' and/or vote choice. This function is mostly for internal use, but you may
-#' want it to create a \code{vbdf} object from your custom voting bloc analysis.
-#' A valid \code{vbdf} object can be used in \link{vb_difference} and \link{plot_vbdf}.
+#' want it to create a \code{vbdf} object from your own voting bloc analysis.
+#' A valid \code{vbdf} object can be used in [vb_difference] and [vb_plot].
 #'
 #' @param data data.frame of voting-bloc results to convert to a \code{vbdf} object
 #' @param bloc_var string, the name of the variable that defines the voting blocs
-#' @param var_type string, the type of varialbe, discrete or continuous
+#' @param var_type string, the type of variable, discrete or continuous
 #'
 #' @return A \code{vbdf} object.
 #'

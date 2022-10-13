@@ -11,7 +11,7 @@ vbdf(data, bloc_var, var_type = c("discrete", "continuous"))
 
 \item{bloc_var}{string, the name of the variable that defines the voting blocs}
 
-\item{var_type}{string, the type of varialbe, discrete or continuous}
+\item{var_type}{string, the type of variable, discrete or continuous}
 }
 \value{
 A \code{vbdf} object.
@@ -19,6 +19,6 @@ A \code{vbdf} object.
 \description{
 Create a vbdf object holding bloc-level estimates of composition, turnout,
 and/or vote choice. This function is mostly for internal use, but you may
-want it to create a \code{vbdf} object from your custom voting bloc analysis.
-A valid \code{vbdf} object can be used in \link{vb_difference} and \link{plot_vbdf}.
+want it to create a \code{vbdf} object from your own voting bloc analysis.
+A valid \code{vbdf} object can be used in [vb_difference] and [vb_plot].
 }

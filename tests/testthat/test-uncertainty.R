@@ -11,6 +11,8 @@ test_that("Uncertainty runs for discrete blocs", {
                         dv_turnout = "voted", weight = "weight",
                         boot_iters = 10)
     summary_disc <- vb_uncertainty(vbdf, na.rm = TRUE)
+    expect_s3_class(summary_disc, "vbsum")
+
     summary_check <-
         group_by(vbdf, race) %>%
         summarize(
@@ -104,7 +106,6 @@ test_that("Uncertainty runs for continuous blocs", {
                                dv_turnout = "voted", weight = "weight",
                                boot_iters = 5)
 
-
     summary_cont <- vb_uncertainty(vbdf_cont,
                                    estimates = c("prob", "pr_turnout", "net_rep"))
 
@@ -115,10 +116,58 @@ test_that("Uncertainty runs for continuous blocs", {
 
     summary_cont <- vb_uncertainty(vbdf_cont, estimates = c("prob", "pr_turnout", "net_rep"),
                                    type = "continuous", bin_col = "age_bin")
+    expect_s3_class(summary_cont, "vbsum")
+    expect_s3_class(summary_bin, "vbsum")
 
     expect_error(vb_uncertainty(vbdf_cont, estimates = c("prob", "pr_turnout", "net_rep"),
                                 type = "asdf", bin_col = "age_bin"),
                  "should be one of")
+
+})
+
+
+test_that("Uncertainty runs for vb difference", {
+    library(dplyr)
+
+    data(anes)
+    anes_tmp <- filter(anes, year %in% sample(seq(1976, 2020, 4), 2))
+
+    cat("########### TESTING WITH ANES", unique(anes_tmp$year), "###########\n")
+
+
+    vbdf_cont_list <-
+        anes_tmp %>%
+        filter(!is.na(age)) %>%
+        split(., .$year) %>%
+        lapply(
+            vb_continuous,
+            indep = "age",
+            dv_vote3 = "vote_pres3",
+            dv_turnout = "voted", weight = "weight",
+            boot_iters = 10,
+            min_val = 17, max_val = 100
+        )
+
+    vbdf_cont <-  bind_rows(vbdf_cont_list, .id = "year")
+    vbdiff_cont <- vb_difference(vbdf_cont, sort_col = "year")
+
+
+    vbdiff_cont$age_bin <- vbdiff_cont$age - vbdiff_cont$age %% 10
+
+    diffsum_bin <- vb_uncertainty(vbdiff_cont,
+                                  type = "binned", bin_col = "age_bin")
+
+    diffsum_cont <- vb_uncertainty(vbdiff_cont,
+                                   type = "continuous", bin_col = "age_bin")
+    expect_s3_class(diffsum_bin, "vbsum")
+    expect_s3_class(diffsum_cont, "vbsum")
+
+    identical(diffsum_bin,
+              vb_summary(vbdiff_cont,
+                         type = "binned", bin_col = "age_bin"))
+    identical(diffsum_cont,
+              vb_uncertainty(vbdiff_cont,
+                             type = "continuous", bin_col = "age_bin"))
 
 })
 

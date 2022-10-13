@@ -20,25 +20,34 @@ boot_mat <- function(nrow, iters, weight = NULL){
     return(out)
 }
 
-
-#' Compute uncertainty for voting blocs analysis
+#' Constructor for vbdf summaries
 #'
-#' This generic function will take the result of a voting blocs analysis run
-#' with bootstrap iterations and compute resampling-based uncertainty estimates.
+#' @param x data.frame of uncertainty summary
+#' @param bloc_var string, the name of the variable that defines the voting blocs
+#' @param var_type string, the type of variable, discrete or continuous
+#' @param summary_type string, the type of variable, discrete or continuous
 #'
-#' @param object a \code{vbdf} or \code{vbdiff} object.
-#' @param ... further arguments to pass to methods
+#' @return A \code{vbsum} object
+
+new_vbsum <- function(x, bloc_var, var_type, summary_type, resamples){
+    stopifnot(is.data.frame(x))
+    # tibble protects attributes from dplyr verbs
+    out <-
+        tibble::new_tibble(x, nrow = nrow(x), class = "vbsum",
+                           bloc_var = bloc_var, var_type = var_type,
+                           summary_type = summary_type, resamples = resamples)
+
+    tibble::validate_tibble(out)
+
+    return(out)
+}
+
+
+#' Uncertainty for a vbdf objects
 #'
-#' @export
-
-vb_uncertainty <- function(object, type, estimates, ...) UseMethod("vb_uncertainty")
-
-
-#' @describeIn vb_uncertainty Uncertainty for a vbdf object
-#'
-#' @param vbout a \code{vbdf} or \code{vbdiff} object, usually the output of \code{vb_discrete}, \code{vb_continuous}, or \code{vb_difference}.
+#' @param object a \code{vbdf} object, usually the output of [vb_discrete], [vb_continuous], or [vb_difference].
 #' @param type a string naming the type of independent variable summary. Use
-#'   \code{"binned"} when using the output of \code{vb_continuous()} plus a binned version of the continuous bloc variable.
+#'   \code{"binned"} when using the output of [vb_continuous] plus a binned version of the continuous bloc variable.
 #' @param estimates character vector naming columns for which to calculate
 #'   uncertainty estimates.
 #' @param na.rm logical indicating whether to remove \code{NA} values in
@@ -49,32 +58,32 @@ vb_uncertainty <- function(object, type, estimates, ...) UseMethod("vb_uncertain
 #' @param low_ci  numeric. If you include the string \code{"low"} in \code{funcs}, then use this argument to control the lower bound of the confidence interval.
 #' @param high_ci numeric. If you include the string \code{"high"} in \code{funcs}, then use this argument to control the upper bound of the confidence interval.
 #' @param bin_col character vector naming the column(s) that define the bins. Used only when  \code{type} is \code{"binned"}.
-#' @return A \code{vbdf} object with additional columns for each combination
+#' @return A summary object with additional columns for each combination
 #'   of \code{estimates} and \code{funcs}.
 #'
-#' @export vb_uncertainty.vbdf
 #' @export
 
-vb_uncertainty <-
-    function(vbout, type = c("discrete", "continuous", "binned"),
-             estimates = intersect(names(vbdf),
-                                   c("prob", "pr_turnout",
-                                     "pr_votedem", "pr_voterep",
-                                     "cond_rep", "net_rep")),
+vb_summary <-
+    vb_uncertainty <-
+    function(object, type = c("discrete", "continuous", "binned"),
+             estimates = grep("prob|pr_turnout|pr_votedem|pr_voterep|cond_rep|net_rep",
+                              names(object), value = TRUE),
              na.rm = FALSE,
              funcs = c("mean", "median", "low", "high"),
              low_ci = 0.025, high_ci = 0.975,
              bin_col){
 
-        check_vbdf(vbdf)
-        if(missing(type))
-            type <- get_var_type(vbdf)
+        check_vbdf(object)
+        if(identical(type, c("discrete", "continuous", "binned")))
+            type <- get_var_type(object)
         else type <- match.arg(type, c("discrete", "binned", "continuous"))
 
-        stopifnot(rlang::has_name(vbdf, estimates))
+        if(!all(rlang::has_name(object, estimates))){
+            miss_estim <- paste(setdiff(estimates, names(object)), collapse = ", ")
+            stop(sprintf("%s column not found in data\n", miss_estim))
+        }
 
-        type <- match.arg(type)
-        bloc_var <- get_bloc_var(vbdf)
+        bloc_var <- get_bloc_var(object)
 
         if(is.character(funcs))
             funcs <-
@@ -90,10 +99,10 @@ vb_uncertainty <-
                    {
                        uncertainty_summary <-
                            # For each subgroup, calculate summary stats across iterations
-                           vbdf %>%
+                           object %>%
                            dplyr::group_by(
                                dplyr::across(dplyr::all_of(
-                                   c(dplyr::group_vars(vbdf), bloc_var)))
+                                   c(dplyr::group_vars(object), bloc_var)))
                                ) %>%
                            dplyr::summarize(
                                dplyr::across(dplyr::all_of(estimates),
@@ -107,9 +116,9 @@ vb_uncertainty <-
 
                        uncertainty_summary <-
 
-                           vbdf %>%
+                           object %>%
                            # Begin by integrating estimates within bin and iteration
-                           dplyr::group_by(dplyr::across(dplyr::all_of(c("resample", dplyr::group_vars(vbdf), bin_col)))) %>%
+                           dplyr::group_by(dplyr::across(dplyr::all_of(c("resample", dplyr::group_vars(object), bin_col)))) %>%
 
                            dplyr::summarize(
                                dplyr::across(dplyr::all_of(estimates),
@@ -117,7 +126,7 @@ vb_uncertainty <-
                            ) %>%
 
                            # For each subgroup, calculate summary stats across iterations
-                           dplyr::group_by(dplyr::across(dplyr::all_of(c(dplyr::group_vars(vbdf), bin_col)))) %>%
+                           dplyr::group_by(dplyr::across(dplyr::all_of(c(dplyr::group_vars(object), bin_col)))) %>%
                            dplyr::summarize(
                                dplyr::across(dplyr::all_of(estimates),
                                              .fns = funcs
@@ -127,9 +136,9 @@ vb_uncertainty <-
                continuous =
                    {
                        uncertainty_summary <-
-                           vbdf %>%
+                           object %>%
                            # Across iterations, calculate summary stats
-                           dplyr::group_by(dplyr::across(dplyr::all_of(c(dplyr::group_vars(vbdf), bloc_var)))) %>%
+                           dplyr::group_by(dplyr::across(dplyr::all_of(c(dplyr::group_vars(object), bloc_var)))) %>%
 
                            dplyr::summarize(
                                dplyr::across(dplyr::all_of(estimates),
@@ -139,9 +148,12 @@ vb_uncertainty <-
                    }
                )
 
+        n_resamples <- length(unique(object$resample))
+
         # Use custom class to protect attributes from dplyr verbs
-        out <- new_vbdf(uncertainty_summary,
-                        bloc_var = bloc_var, var_type = get_var_type(vbdf))
+        out <- new_vbsum(uncertainty_summary,
+                         bloc_var = bloc_var, var_type = get_var_type(object),
+                         summary_type = type, resamples = n_resamples)
 
         return(out)
 
