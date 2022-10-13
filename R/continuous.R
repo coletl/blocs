@@ -13,6 +13,11 @@
 #'   \link{estimate_density}.
 #' @param ...        further arguments to pass to \link[ks]{kde} for density estimation.
 #'
+#' @return a \code{vbdf} data.frame with columns for the resample, bloc variable,
+#' and, for each resample-bloc combination, four estimates:
+#' probability density, turnout, Republican vote choice conditional on turnout,
+#' and net Republican votes.
+#'
 #' @export
 
 vb_continuous <-
@@ -40,16 +45,18 @@ vb_continuous <-
         stopifnot(is.data.frame(data_turnout))
         stopifnot(is.data.frame(data_vote))
 
-        stopifnot(rlang::has_name(data_density, indep))
-        stopifnot(rlang::has_name(data_density, weight))
+        if(!all(rlang::has_name(data_density, indep)))
+            stop(sprintf("%s not found in data_density\n", indep))
 
-        stopifnot(rlang::has_name(data_turnout, indep))
-        stopifnot(rlang::has_name(data_turnout, dv_turnout))
-        stopifnot(rlang::has_name(data_turnout, weight))
+        if(!all(rlang::has_name(data_turnout, indep)))
+            stop(sprintf("%s not found in data_turnout\n", indep))
+        if(!rlang::has_name(data_turnout, dv_turnout))
+            stop(sprintf("%s not found in data_turnout", dv_turnout))
 
-        stopifnot(rlang::has_name(data_vote, indep))
-        stopifnot(rlang::has_name(data_vote, dv_vote3))
-        stopifnot(rlang::has_name(data_vote, weight))
+        if(!all(rlang::has_name(data_vote, indep)))
+            stop(sprintf("%s not found in data_vote\n", indep))
+        if(!rlang::has_name(data_vote, dv_vote3))
+            stop(sprintf("%s not found in data_vote", dv_vote3))
 
         if(is.null(min_val))
             min_val <- collapse::get_vars(data_density, indep) %>%
@@ -66,12 +73,15 @@ vb_continuous <-
         if(!is.null(weight)) {
             if(rlang::has_name(data_density, weight))
                 weight_density <- data_density[[weight]]
+            else stop(sprintf("%s not found in data_density", weight))
 
             if(rlang::has_name(data_turnout, weight))
                 weight_turnout <- data_turnout[[weight]]
+            else stop(sprintf("%s not found in data_turnout", weight))
 
             if(rlang::has_name(data_vote, weight))
                 weight_vote    <- data_vote[[weight]]
+            else stop(sprintf("%s not found in data_vote", weight))
         }
 
         # Check for negative weights
@@ -91,7 +101,9 @@ vb_continuous <-
                 boot_iters_vote <- boot_iters
         } else {
 
-            stopifnot(rlang::has_name(boot_iters, c("density", "turnout", "vote")))
+            if(!rlang::has_name(boot_iters, c("density", "turnout", "vote")))
+                stop("If boot_iters has length greater than 1, you must name each value according to the data set:
+                     'density', 'turnout', or 'vote'")
 
             boot_iters_density <-
                 boot_iters[pmatch("density", names(boot_iters))]

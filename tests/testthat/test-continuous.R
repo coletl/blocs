@@ -60,13 +60,10 @@ test_that("estimate_density weights properly", {
 })
 
 
-test_that("vb_continuous runs properly", {
-
-})
-
 
 test_that("vb_continuous runs on ANES", {
 
+    library(dplyr)
     data(anes)
 
     test_year <- sample(unique(anes$year), 1)
@@ -84,12 +81,13 @@ test_that("vb_continuous runs on ANES", {
         vb_continuous(data = anes_test, indep = c("age", "rand"),
                       dv_turnout = "voted", dv_vote3 = "vote_pres3")
 
+    # Vector of boot_Iters
     vbdf <-
         vb_continuous(data = anes_test, indep = c("age", "rand"),
                       dv_turnout = "voted", dv_vote3 = "vote_pres3",
                       boot_iters = c(density = 0, turnout = 5, vote = 10))
-    vbdf
 
+    # Can't fit weighted GAM
     expect_error(
         expect_warning(
             vb_continuous(data = anes_test, indep = c("age", "rand"),
@@ -101,6 +99,7 @@ test_that("vb_continuous runs on ANES", {
         "Cannot fit a weighted GAM"
     )
 
+    # Multiple continuous variables
     set.seed(1)
     vbdfw <-
         expect_warning(

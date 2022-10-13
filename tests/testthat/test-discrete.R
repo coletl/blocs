@@ -92,7 +92,7 @@ test_that("Expected results from ANES analysis", {
                race = as.factor(race),
                cond_rep = pr_voterep - pr_votedem,
                net_rep = prob * pr_turnout * cond_rep) %>%
-        collapse::colorderv(neworder = c("resample", "race", "educ",
+        collapse::colorderv(neworder = c("resample", "race",
                                          "prob", "pr_turnout",
                                          "pr_voterep", "pr_votedem",
                                          "cond_rep", "net_rep"))
@@ -211,7 +211,7 @@ test_that("Bootstrapping runs", {
                              dv_vote3 = "vote_pres3",
                              dv_turnout = "voted", weight = "weight",
                              boot_iters = boot_iters),
-                 "has_name")
+                 "If boot_iters has length greater")
 
     boot_iters <- c(density = 0, turnout = 10, vote = 20)
     vbdf <-

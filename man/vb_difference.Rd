@@ -6,27 +6,27 @@
 \usage{
 vb_difference(
   vbdf,
-  diff_col = intersect(names(vbdf), c("prob", "pr_turnout", "pr_votedem", "pr_voterep",
-    "cond_rep", "net_rep")),
+  estimates = grep("prob|pr_turnout|pr_votedem|pr_voterep|cond_rep|net_rep",
+    names(vbdf), value = TRUE),
   sort_col = "year"
 )
 }
 \arguments{
 \item{vbdf}{data.frame holding the results of voting bloc analyses.}
 
-\item{diff_col}{character vector naming the column(s) in \code{vbdf} with
+\item{estimates}{character vector naming the column(s) in \code{vbdf} with
 which to compute differences.}
 
 \item{sort_col}{character vector naming the column(s) in \code{vbdf} to use
 for sorting before calling \link[base]{diff}.}
 }
 \value{
-A \code{vbdiff} object, similar to \code{vbdf} plus two columns:
-  \code{diff_*}, which holds the difference in \code{vbdf[[diff_col]]} across
-  consecutive years in \code{vbdf$year}; and \code{comp}, which holds a
-  string tag for the years compared.
+A \code{vbdf} object, plus two types of columns:
+for each column named in \code{estimates}, a column named \code{diff_*} containing the
+difference in each estimate across \code{sort_col} values,
+\code{comp}, which contains a string tag for the rows compared (e.g., 2020-2016),
 
-A \code{vbdiff} object.
+A \code{vbdf} object.
 }
 \description{
 Use vbdf output to calculate differences

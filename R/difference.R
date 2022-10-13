@@ -4,17 +4,17 @@
 #' in blocs' net Republican vote contributions.
 #'
 #' @param vbdf      data.frame holding the results of voting bloc analyses.
-#' @param diff_col  character vector naming the column(s) in \code{vbdf} with
+#' @param estimates  character vector naming the column(s) in \code{vbdf} with
 #'   which to compute differences.
 #' @param sort_col  character vector naming the column(s) in \code{vbdf} to use
 #'   for sorting before calling \link[base]{diff}.
 #'
-#' @return A \code{vbdiff} object, similar to \code{vbdf} plus two columns:
-#'   \code{diff_*}, which holds the difference in \code{vbdf[[diff_col]]} across
-#'   consecutive years in \code{vbdf$year}; and \code{comp}, which holds a
-#'   string tag for the years compared.
+#' @return A \code{vbdf} object, plus two types of columns:
+#' for each column named in \code{estimates}, a column named \code{diff_*} containing the
+#' difference in each estimate across \code{sort_col} values,
+#' \code{comp}, which contains a string tag for the rows compared (e.g., 2020-2016),
 #'
-#' @return A \code{vbdiff} object.
+#' @return A \code{vbdf} object.
 #'
 #' @importFrom dplyr %>%
 #'
@@ -22,15 +22,16 @@
 
 vb_difference <-
     function(vbdf,
-             diff_col = intersect(names(vbdf),
-                                  c("prob", "pr_turnout",
-                                    "pr_votedem", "pr_voterep",
-                                    "cond_rep", "net_rep")),
+             estimates = grep("prob|pr_turnout|pr_votedem|pr_voterep|cond_rep|net_rep",
+                              names(vbdf), value = TRUE),
              sort_col = "year"){
 
     stopifnot(length(sort_col) == 1)
+    if(length(unique(vbdf[[sort_col]])) < 2)
+        stop(sprintf("Need multiple values in vbdf[[%s]] to calculate difference", sort_col))
+
     check_vbdf(vbdf)
-    stopifnot(rlang::has_name(vbdf, sort_col))
+    if(!rlang::has_name(vbdf, sort_col)) stop(sprintf("Sorting column %s not found in data", sort_col))
 
     bloc_var     <- get_bloc_var(vbdf)
     var_type     <- get_var_type(vbdf)
@@ -48,7 +49,7 @@ vb_difference <-
 
         dplyr::transmute(
             dplyr::across(
-                dplyr::all_of(diff_col),
+                dplyr::all_of(estimates),
                 .names = "diff_{.col}",
                 .fns   =          ~ dplyr::lead(.x)               - .x),
             comp = sprintf("%s-%s",
@@ -62,9 +63,8 @@ vb_difference <-
     vbdiff <- filter(vbdiff, !bad_diff)
 
     # group_by removed the vbdf class and attributes
-    out <- new_vbdiff(x = vbdiff,
-                      bloc_var = bloc_var, var_type = var_type,
-                      diff_col = diff_col)
+    out <- vbdf(data = vbdiff,
+                bloc_var = bloc_var, var_type = var_type)
 
     return(out)
 }

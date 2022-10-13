@@ -65,7 +65,10 @@ uncertainty.}
 \item{...}{further arguments to pass to \link[ks]{kde} for density estimation.}
 }
 \value{
-A \code{vbdf} object.
+a \code{vbdf} data.frame with columns for the resample, bloc variable,
+and, for each resample-bloc combination, four estimates:
+probability density, turnout, Republican vote choice conditional on turnout,
+and net Republican votes.
 }
 \description{
 Define voting blocs along a \strong{continuous} variable and estimate their
