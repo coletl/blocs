@@ -26,6 +26,7 @@ boot_mat <- function(nrow, iters, weight = NULL){
 #' @param bloc_var string, the name of the variable that defines the voting blocs
 #' @param var_type string, the type of variable, discrete or continuous
 #' @param summary_type string, the type of variable, discrete or continuous
+#' @param resamples numeric, the number of bootstrap resamples
 #'
 #' @return A \code{vbsum} object
 

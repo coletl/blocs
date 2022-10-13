@@ -48,13 +48,13 @@ voter turnout in \code{data_turnout}. That column must be coded 0 =  no vote, 1 
 \item{weight}{optional string naming the column of sample weights.}
 
 \item{min_val}{numeric vector of the same length as \code{indep}, Lower bound for the density estimation of each respective \code{indep}. See
-\link{estimate_density}.}
+[estimate_density].}
 
 \item{max_val}{numeric vector of the same length as \code{indep}, Upper bound for the density estimation of each respective \code{indep}. See
-\link{estimate_density}.}
+[estimate_density].}
 
 \item{n_points}{scalar, number of points at which to estimate density. See
-\link{estimate_density}.}
+[estimate_density].}
 
 \item{boot_iters}{integer, number of bootstrap iterations for uncertainty
 estimation. The default \code{FALSE} is equivalent to 0 and does not estimate

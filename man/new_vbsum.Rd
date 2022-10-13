@@ -14,6 +14,8 @@ new_vbsum(x, bloc_var, var_type, summary_type, resamples)
 \item{var_type}{string, the type of variable, discrete or continuous}
 
 \item{summary_type}{string, the type of variable, discrete or continuous}
+
+\item{resamples}{numeric, the number of bootstrap resamples}
 }
 \value{
 A \code{vbsum} object

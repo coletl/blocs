@@ -6,11 +6,11 @@
 #' @inherit vb_discrete
 #'
 #' @param min_val    numeric vector of the same length as \code{indep}, Lower bound for the density estimation of each respective \code{indep}. See
-#'   \link{estimate_density}.
+#'   [estimate_density].
 #' @param max_val    numeric vector of the same length as \code{indep}, Upper bound for the density estimation of each respective \code{indep}. See
-#'   \link{estimate_density}.
+#'   [estimate_density].
 #' @param n_points   scalar, number of points at which to estimate density. See
-#'   \link{estimate_density}.
+#'   [estimate_density].
 #' @param ...        further arguments to pass to \link[ks]{kde} for density estimation.
 #'
 #' @return a \code{vbdf} data.frame with columns for the resample, bloc variable,
@@ -101,7 +101,7 @@ vb_continuous <-
                 boot_iters_vote <- boot_iters
         } else {
 
-            if(!rlang::has_name(boot_iters, c("density", "turnout", "vote")))
+            if(!all(rlang::has_name(boot_iters, c("density", "turnout", "vote"))))
                 stop("If boot_iters has length greater than 1, you must name each value according to the data set:
                      'density', 'turnout', or 'vote'")
 
@@ -177,7 +177,7 @@ vb_continuous <-
                       turn <- as.vector(stats::predict(gam_turnout, newdata = results_base))
                       data.frame(results_base, pr_turnout = turn)
                   }
-            ) %>% bind_rows(.id = "resample")
+            ) %>% dplyr::bind_rows(.id = "resample")
 
         # Vote choice estimation ----
         itermat_vote <-
@@ -197,7 +197,7 @@ vb_continuous <-
                       cond_rep <- as.vector(stats::predict(gam_vote, newdata = results_base))
                       data.frame(results_base, cond_rep)
                   }
-            ) %>% bind_rows(.id = "resample")
+            ) %>% dplyr::bind_rows(.id = "resample")
 
 
         results <-
@@ -231,7 +231,7 @@ vb_continuous <-
 
             results <-
                 dplyr::filter(results, resample != "original") %>%
-                dplyr::select(-all_of(estim_orig)) %>%
+                dplyr::select(-dplyr::all_of(estim_orig)) %>%
                 dplyr::left_join(vbdf_orig, by = indep)
         }
 

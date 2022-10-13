@@ -22,7 +22,7 @@ test_that("vb_plot runs for discrete vbdf summary", {
                sprintf, .)
 
     Map(
-        f = function(y, ymin, ymax) vb_plot.vbsum(data = vbsum, x_col = "race",
+        f = function(y, ymin, ymax) vb_plot(data = vbsum, x_col = "race",
                                                   y_col = y, ymin_col = ymin, ymax_col = ymax),
         y = tags[[1]],
         ymin = tags[[2]], ymax = tags[[3]]
@@ -59,13 +59,13 @@ test_that("vb_plot runs for discrete difference summary", {
                sprintf, .)
 
     Map(
-        f = function(y, ymin, ymax) vb_plot.vbsum(data = vbsum_diff, x_col = "race",
+        f = function(y, ymin, ymax) vb_plot(data = vbsum_diff, x_col = "race",
                                                   y_col = y, ymin_col = ymin, ymax_col = ymax),
         y = tags[[1]],
         ymin = tags[[2]], ymax = tags[[3]]
     )
 
-    # vb_plot.vbsum(vbsum_diff,
+    # vb_plot(vbsum_diff,
     #               x_col = "race",
     #               y_col = "diff_prob_mean",
     #               ymin_col = "diff_prob_low", ymax_col = "diff_prob_high")
@@ -99,14 +99,14 @@ test_that("vb_plot runs for continuous vbdf summary", {
                sprintf, .)
 
     Map(
-        f = function(y, ymin, ymax) vb_plot.vbsum(data = vbsum_cont, x_col = "age",
+        f = function(y, ymin, ymax) vb_plot(data = vbsum_cont, x_col = "age",
                                                   y_col = y, ymin_col = ymin, ymax_col = ymax),
         y = tags[[1]],
         ymin = tags[[2]], ymax = tags[[3]]
     )
 
     Map(
-        f = function(y, ymin, ymax) vb_plot.vbsum(data = vbsum_bin, x_col = "age_bin",
+        f = function(y, ymin, ymax) vb_plot(data = vbsum_bin, x_col = "age_bin",
                                                   y_col = y, ymin_col = ymin, ymax_col = ymax),
         y = tags[[1]],
         ymin = tags[[2]], ymax = tags[[3]]
@@ -144,13 +144,13 @@ test_that("vb_plot runs for continuous difference summary", {
                sprintf, .)
 
     Map(
-        f = function(y, ymin, ymax) vb_plot.vbsum(data = vbsum_diff, x_col = "age",
+        f = function(y, ymin, ymax) vb_plot(data = vbsum_diff, x_col = "age",
                                                   y_col = y, ymin_col = ymin, ymax_col = ymax),
         y = tags[[1]],
         ymin = tags[[2]], ymax = tags[[3]]
     )
 
-    # vb_plot.vbsum(vbsum_diff,
+    # vb_plot(vbsum_diff,
     #               x_col = "race",
     #               y_col = "diff_prob_mean",
     #               ymin_col = "diff_prob_low", ymax_col = "diff_prob_high")

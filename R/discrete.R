@@ -227,7 +227,7 @@ vb_discrete <-
 
             results <-
                 dplyr::filter(results, resample != "original") %>%
-                dplyr::select(-all_of(estim_orig)) %>%
+                dplyr::select(-dplyr::all_of(estim_orig)) %>%
                 dplyr::left_join(vbdf_orig, by = indep)
         }
 
