@@ -39,7 +39,7 @@ vb_discrete <-
              weight = NULL, boot_iters = FALSE,
              verbose = FALSE, check_discrete = TRUE){
 
-        if(is_grouped_df(data_density)){
+        if(dplyr::is_grouped_df(data_density)){
             stop("Voting blocs analysis does not permit grouped data frames.\n Please use split-apply-combine to analyze multiple years, or pass multiple column names to the `indep` parameter for multivariate blocs.")
         }
 
@@ -178,7 +178,7 @@ vb_discrete <-
                                    dv = dv_turnout, weight = weight_turnout)
 
             ) %>%
-            bind_rows(.id = "resample")
+            dplyr::bind_rows(.id = "resample")
 
         # Vote choice calculation ----
         itermat_vote <-
@@ -223,7 +223,7 @@ vb_discrete <-
             # Merge original-sample estimates into resamples
             vbdf_orig <-
                 dplyr::select(vbdf_orig,
-                              all_of(c(indep, estim_orig)))
+                              dplyr::all_of(c(indep, estim_orig)))
 
             results <-
                 dplyr::filter(results, resample != "original") %>%

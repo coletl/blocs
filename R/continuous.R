@@ -27,7 +27,7 @@ vb_continuous <-
              weight = NULL, min_val = NULL, max_val = NULL, n_points = 100,
              boot_iters = FALSE, verbose = FALSE, ...){
 
-        if(is_grouped_df(data_density)){
+        if(dplyr::is_grouped_df(data_density)){
             stop("Density estimation does not permit grouped data frames.\n
                   Please use split-apply-combine to analyze multiple years, or pass multiple column names to the `indep` parameter for multivariate blocs.")
         }
@@ -151,7 +151,7 @@ vb_continuous <-
                       return(dens)
                   }
             )
-        results_list$prob <- bind_rows(prob_list, .id = "resample")
+        results_list$prob <- dplyr::bind_rows(prob_list, .id = "resample")
         results_base <- prob_list[[1]] %>% collapse::fselect(indep)
 
         # Turnout estimation ----
@@ -227,7 +227,7 @@ vb_continuous <-
             # Merge original-sample estimates into resamples
             vbdf_orig <-
                 dplyr::select(vbdf_orig,
-                              all_of(c(indep, estim_orig)))
+                              dplyr::all_of(c(indep, estim_orig)))
 
             results <-
                 dplyr::filter(results, resample != "original") %>%

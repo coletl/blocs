@@ -4,10 +4,17 @@
 \alias{vb_plot}
 \title{Plot the summary of a voting bloc analysis}
 \usage{
-vb_plot(data, ...)
+vb_plot(
+  data,
+  x_col = get_bloc_var(data),
+  y_col,
+  ymin_col,
+  ymax_col,
+  discrete = length(unique(data[[x_col]])) < 20
+)
 }
 \arguments{
-\item{vbsum}{a \code{vbsum} data.frame, the result of [vb_summary].}
+\item{data}{a \code{vbsum} data.frame, the result of [vb_summary].}
 
 \item{x_col}{string naming the column that defines voting blocs.}
 

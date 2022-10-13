@@ -60,7 +60,7 @@ vb_difference <-
 
     # Remove invalid differences (last rows of each group)
     bad_diff <- grepl("NA", vbdiff[["comp"]])
-    vbdiff <- filter(vbdiff, !bad_diff)
+    vbdiff <- dplyr::filter(vbdiff, !bad_diff)
 
     # group_by removed the vbdf class and attributes
     out <- vbdf(data = vbdiff,
