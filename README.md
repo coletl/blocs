@@ -8,3 +8,9 @@ This package provides several functions and classes to analyze voting blocs in U
 # install.packages("devtools")
 devtools::install_github("coletl/blocs", dependencies = TRUE)
 ```
+
+<!-- badges: start -->
+
+[![R-CMD-check]([https://github.com/coletl/blocs/workflows/R-CMD-check/badge.svg)](https://github.com/coletl/blocs/actions)](https://github.com/coletl/blocs/workflows/R-CMD-check/badge.svg)](https://github.com/coletl/blocs/actions))
+
+<!-- badges: end -->
