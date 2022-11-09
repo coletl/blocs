@@ -1,6 +1,6 @@
 <!-- badges: start -->
 
-[![R-CMD-check]([https://github.com/coletl/blocs/workflows/R-CMD-check/badge.svg)](https://github.com/coletl/blocs/actions)](https://github.com/coletl/blocs/workflows/R-CMD-check/badge.svg)](https://github.com/coletl/blocs/actions))
+[![R-CMD-check](https://github.com/coletl/blocs/workflows/R-CMD-check/badge.svg)](https://github.com/coletl/blocs/actions)
 
 <!-- badges: end -->
 
