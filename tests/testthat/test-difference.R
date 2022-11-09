@@ -17,7 +17,8 @@ test_that("difference works for discrete blocs", {
             dv_vote3 = "vote_pres3",
             dv_turnout = "voted", weight = "weight",
             boot_iters = FALSE
-        )
+        ) %>%
+        lapply(arrange, race, educ)
     vbdf_disc <-  bind_rows(vbdf_disc_list, .id = "year")
     vbdiff_disc <- vb_difference(vbdf_disc, sort_col = "year")
 
