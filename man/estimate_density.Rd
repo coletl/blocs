@@ -20,7 +20,7 @@ estimate_density(x, min, max, n_points = 100, w = NULL, ...)
 \item{...}{further arguments to pass to \link[ks]{kde}}
 }
 \description{
-Run \link[ks]{kde} for weighted denisty estimation
+Run \link[ks]{kde} for weighted density estimation
 of a  \code{x} at \code{n_points}
 evenly spaced points between \code{min} and {max}.
 }

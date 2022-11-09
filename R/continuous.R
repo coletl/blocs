@@ -255,7 +255,7 @@ vb_continuous <-
 
 #' Estimate density
 #'
-#' Run \link[ks]{kde} for weighted denisty estimation
+#' Run \link[ks]{kde} for weighted density estimation
 #' of a  \code{x} at \code{n_points}
 #' evenly spaced points between \code{min} and {max}.
 #'
