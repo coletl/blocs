@@ -51,8 +51,8 @@ check_vbdf <- function(x, tol = sqrt(.Machine$double.eps)){
     ) stop("Found a density estimate outside of normal range.")
 
     # Allow modeled probabilities out of normal range
-    pr_lowbound <- ifelse(get_var_type(x) == "continuous", -1, 0)
-    pr_uppbound <- ifelse(get_var_type(x) == "continuous",  2, 1)
+    pr_lowbound <- ifelse(get_var_type(x) == "continuous", -2, 0)
+    pr_uppbound <- ifelse(get_var_type(x) == "continuous",  3, 1)
     if(
         isFALSE(
             dplyr::summarize(x,
