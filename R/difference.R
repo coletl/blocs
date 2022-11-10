@@ -63,8 +63,9 @@ vb_difference <-
     vbdiff <- dplyr::filter(vbdiff, !bad_diff)
 
     # group_by removed the vbdf class and attributes
-    out <- vbdf(data = vbdiff,
-                bloc_var = bloc_var, var_type = var_type)
+    # skip validation because differences may be within bounds
+    out <- new_vbdf(x = vbdiff,
+                    bloc_var = bloc_var, var_type = var_type)
 
     return(out)
 }
