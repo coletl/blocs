@@ -2,29 +2,29 @@ Package: blocs
 Type: Package
 Title: Estimate and Visualize Voting Blocs' Partisan Contributions
 Version: 0.1.0
-Author: Authors@R: c(
+Authors@R: c(
+    person("Cole", "Tanigawa-Lau", 
+           email = "coletl@stanford.edu", 
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-8656-571X")
+           ),
     person("Will", "Marble", 
            email = "wmarble@princeton.edu", 
            role = "aut",
-           comments = c(ORCID = "0000-0001-9352-5540")
+           comment = c(ORCID = "0000-0001-9352-5540")
            ),
     person("Justin", "Grimmer", 
            email = "jgrimmer@stanford.edu", 
-           role = "aut",
-           comments = c(ORCID = "")
-           ),
-    person("Cole", "Tanigawa-Lau", 
-           email = "coletl@stanford.edu", 
-           role = c("cre", "aut")
-           comments = c(ORCID = "0000-0002-8656-571X"))
+           role = "aut"
+           )
            )
 Maintainer: Cole Tanigawa-Lau <coletl@stanford.edu>
 Description: Functions to combine data on voting blocs' 
     size, turnout, and vote choice to estimate each bloc's
     vote contributions to the Democratic and Republican parties.
-    The user may define voting blocs along a discrete or continuous variable.
     The package also includes functions for uncertainty estimation and
-    plotting.
+    plotting. Users may define voting blocs along a discrete or continuous variable.
+    The package implements methods described in Grimmer, Marble, and Tanigawa-Lau (2022) <doi:10.31235/osf.io/c9fkg>.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
