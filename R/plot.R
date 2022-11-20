@@ -8,6 +8,8 @@
 #' @param ymax_col   string naming the column to plot as the upper bound of the confidence interval.
 #' @param discrete   logical indicating whether voting blocs are defined along a discrete (not continuous) variable.
 #'
+#' @return a ggplot object
+#'
 #' @import ggplot2
 #'
 #' @export vb_plot

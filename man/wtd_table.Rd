@@ -26,6 +26,9 @@ wtd_table(
 
 \item{normwt}{logical, whether to normalize weights such that they sum to 1.}
 }
+\value{
+a vector or tibble of counts or proportions by group
+}
 \description{
 Weighted frequency table or proportions
 }

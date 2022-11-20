@@ -3,19 +3,19 @@ Type: Package
 Title: Estimate and Visualize Voting Blocs' Partisan Contributions
 Version: 0.1.0
 Authors@R: c(
-    person("Cole", "Tanigawa-Lau", 
-           email = "coletl@stanford.edu", 
-           role = c("aut", "cre"),
-           comment = c(ORCID = "0000-0002-8656-571X")
+    person("Justin", "Grimmer", 
+           email = "jgrimmer@stanford.edu", 
+           role = "aut"
            ),
     person("Will", "Marble", 
            email = "wmarble@princeton.edu", 
            role = "aut",
            comment = c(ORCID = "0000-0001-9352-5540")
            ),
-    person("Justin", "Grimmer", 
-           email = "jgrimmer@stanford.edu", 
-           role = "aut"
+    person("Cole", "Tanigawa-Lau", 
+           email = "coletl@stanford.edu", 
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-8656-571X")
            )
            )
 Maintainer: Cole Tanigawa-Lau <coletl@stanford.edu>

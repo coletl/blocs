@@ -259,6 +259,8 @@ vb_discrete <-
 #' @param return_tibble    logical, whether to return a tibble or named vector.
 #' @param normwt           logical, whether to normalize weights such that they sum to 1.
 #'
+#' @return a vector or tibble of counts or proportions by group
+#'
 #' @export
 
 wtd_table <-

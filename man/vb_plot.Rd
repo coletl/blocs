@@ -26,6 +26,9 @@ vb_plot(
 
 \item{discrete}{logical indicating whether voting blocs are defined along a discrete (not continuous) variable.}
 }
+\value{
+a ggplot object
+}
 \description{
 Plot the summary of a voting bloc analysis
 }
