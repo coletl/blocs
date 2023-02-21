@@ -35,6 +35,9 @@ test_that("Discrete analysis runs with and without weights", {
     expect_equal(vbdf$pr_voterep,   check$pr_voterep)
     expect_equal(vbdf$pr_votedem,   check$pr_votedem)
     expect_equal(vbdf$net_rep,    check$net_rep)
+    # check against lm
+    expect_equal(vbdf$cond_rep, unname(coef(lm(data = data, vote3 ~ x_disc - 1))))
+
 
     expect_error(
         expect_warning(
@@ -61,8 +64,12 @@ test_that("Discrete analysis runs with and without weights", {
     expect_equal(vbdf$pr_votedem,     check$pr_votedem)
     expect_equal(vbdf_wtd$net_rep,
                  (check$pr_voterep - check$pr_votedem) * check$pr_turnout * (check$prob * data$weight) / sum(check$prob * data$weight))
+    # check against lm
+    expect_equal(vbdf_wtd$cond_rep, unname(coef(lm(data = data, vote3 ~ x_disc - 1, weights = weight))))
 }
 )
+
+
 
 ##### ANES ####
 
@@ -92,15 +99,23 @@ test_that("Expected results from ANES analysis", {
                race = as.factor(race),
                cond_rep = pr_voterep - pr_votedem,
                net_rep = prob * pr_turnout * cond_rep) %>%
-        collapse::colorderv(neworder = c("resample", "race",
+        collapse::colorderv(neworder = c("race", "resample",
                                          "prob", "pr_turnout",
                                          "pr_voterep", "pr_votedem",
                                          "cond_rep", "net_rep"))
 
     expect_equal(vbdf, check, ignore_attr = TRUE)
 
-    # Multivariate blocs ----
+    # check against lm
+    vbdf_complete <- filter(vbdf, !is.na(race))
+    expect_equal(vbdf_complete$cond_rep,
+                 unname(
+                     coef(lm(data = anes_tmp, vote_pres3 ~ race - 1, weights = weight))[vbdf_complete$race]
+                     )
+                 )
 
+    # Multivariate blocs ----
+    anes_tmp <- filter(anes_tmp, !is.na(race), !is.na(educ))
     vbdf <-
         anes_tmp %>%
         vb_discrete(indep = c("race", "educ"),
@@ -118,7 +133,8 @@ test_that("Expected results from ANES analysis", {
             pr_votedem = weighted.mean(vote_pres3 == -1, weight, na.rm = TRUE)
         ) %>%
         mutate(resample = "original",
-               race = factor(race),
+               race = factor(race, levels = unique(vbdf$race)),
+               educ = factor(educ, levels = unique(vbdf$educ)),
                cond_rep = pr_voterep - pr_votedem,
                net_rep = prob * pr_turnout * cond_rep) %>%
         collapse::colorderv(neworder = c("resample", "race", "educ",
@@ -127,10 +143,16 @@ test_that("Expected results from ANES analysis", {
                                          "cond_rep", "net_rep")) %>%
         collapse::roworder(resample, race, educ) %>%
         ungroup()
-    # Some problems with density estimation for check.
-    # blocs' prob calculation is tested against questionr::wtd.table()
-    # in separate test script
+
     expect_equal(vbdf, check, ignore_attr = TRUE)
+
+    # check against lm
+    vbdf_complete <- filter(vbdf, !is.na(race), !is.na(educ))
+    lmod <- lm(data = anes_tmp, vote_pres3 ~ race * educ - 1, weights = weight)
+    vbdf_complete$pred <- predict(lmod, newdata = vbdf_complete)
+
+    expect_equal(vbdf_complete$cond_rep,
+                 unname(vbdf_complete$pred))
 
 }
 )
