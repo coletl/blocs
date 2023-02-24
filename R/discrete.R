@@ -192,7 +192,7 @@ vb_discrete <-
                   FUN = function(ind)
                       calc_vote(dplyr::slice(data_vote, ind),
                                 indep = indep,
-                                dv = dv_vote3, weight = weight_vote)
+                                dv3 = dv_vote3, weight = weight_vote)
             ) %>%
             dplyr::bind_rows(.id = "resample")
 
@@ -209,7 +209,7 @@ vb_discrete <-
         if(contains_original && !all(boot_iters == 0)){
             estim_nms <- c(prob = "density", pr_turnout = "turnout",
                            net_rep = "vote choice")
-            vbdf_orig <- dplyr::filter(results, resample == "original")
+            vbdf_orig <- collapse::fsubset(results, resample == "original")
 
             data_orig <- stats::na.omit(unique(estim_nms[names(which(!sapply(vbdf_orig, function(x) all(is.na(x)))))]))
             estim_orig <- names(estim_nms[estim_nms == data_orig])
@@ -226,7 +226,7 @@ vb_discrete <-
                               dplyr::all_of(c(indep, estim_orig)))
 
             results <-
-                dplyr::filter(results, resample != "original") %>%
+                collapse::fsubset(results, resample != "original") %>%
                 dplyr::select(-dplyr::all_of(estim_orig)) %>%
                 dplyr::left_join(vbdf_orig, by = indep)
         }
@@ -324,7 +324,10 @@ calc_turnout <- function(data, indep, dv, weight){
     return(out)
 }
 
-calc_vote <- function(data, indep, dv, weight){
+calc_vote <- function(data, indep, dv3, weight){
+
+    # Index to remove non-voters
+    voter_ind <- which(data[[dv3]] != 0)
 
     cgdf <-
         collapse::get_vars(
@@ -332,16 +335,17 @@ calc_vote <- function(data, indep, dv, weight){
             collapse::fgroup_by(
 
                 collapse::ftransform(
-                    data,
-                    pr_voterep = as.numeric(get({{dv}}) ==  1),
-                    pr_votedem = as.numeric(get({{dv}}) == -1)
+                    collapse::fsubset(data, voter_ind),
+
+                    pr_voterep = as.numeric(get({{dv3}}) ==  1),
+                    pr_votedem = as.numeric(get({{dv3}}) == -1)
                 ),
                 indep),
 
             c("pr_voterep", "pr_votedem")
         )
 
-    out <- collapse::fmean(cgdf, w = weight)
+    out <- collapse::fmean(cgdf, w = weight[voter_ind])
     out$cond_rep <- out$pr_voterep - out$pr_votedem
 
     return(out)

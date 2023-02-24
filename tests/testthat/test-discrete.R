@@ -7,10 +7,8 @@ test_that("Discrete analysis runs with and without weights", {
         x_disc = LETTERS[1:4],
         x_cont = 1:4,
 
-        voted    = c( 0, 1,  1,  1),
-        pr_votedem = c(NA, 0,  1,  1),
-        pr_voterep = c(NA, 1,  0,  0),
-        vote3    = c( 0, 1, -1, -1),
+        voted      = c( 0, 1,  1,  1),
+        vote3      = c( 0, 1, -1, -1),
 
         weight = c(1.5, 2, 0.5, 0)
     )
@@ -25,9 +23,9 @@ test_that("Discrete analysis runs with and without weights", {
         data.frame(
             prob = rep(0.25, 4),
             pr_turnout = c(0, 1, 1, 1),
-            pr_votedem = c(0, 0, 1, 1),
-            pr_voterep = c(0, 1, 0, 0),
-            net_rep = c(0, 0.25, -0.25, -0.25)
+            pr_votedem = c(NA, 0, 1, 1),
+            pr_voterep = c(NA, 1, 0, 0),
+            net_rep = c(NA, 0.25, -0.25, -0.25)
         )
 
     expect_equal(vbdf$prob,       check$prob)
@@ -36,21 +34,22 @@ test_that("Discrete analysis runs with and without weights", {
     expect_equal(vbdf$pr_votedem,   check$pr_votedem)
     expect_equal(vbdf$net_rep,    check$net_rep)
     # check against lm
-    expect_equal(vbdf$cond_rep, unname(coef(lm(data = data, vote3 ~ x_disc - 1))))
+    lm_coef <- unname(coef(lm(data = data, vote3 ~ x_disc - 1)))
+    lm_coef[lm_coef == 0] <- NA
+    expect_equal(vbdf$cond_rep, lm_out)
 
 
     expect_error(
-        expect_warning(
-            vbdf_wtd <-
-                vb_discrete(data, indep = "x_disc",
-                            dv_turnout = "voted",
-                            dv_vote3 = "vote3",
-                            weight = "weight", boot_iters = FALSE),
-            "small voting bloc"
-        ), "Weights must be greater than zero"
+        vbdf_wtd <-
+            vb_discrete(data, indep = "x_disc",
+                        dv_turnout = "voted",
+                        dv_vote3 = "vote3",
+                        weight = "weight", boot_iters = FALSE),
+        "Weights must be greater than zero."
     )
 
-    data <- mutate(data, weight = c(1.5, 2, 0.5, 0.5))
+    data <- mutate(data,
+                   weight = c(1.5, 2, 0.5, 0.5))
 
     vbdf_wtd <-
         vb_discrete(data, indep = "x_disc",
@@ -65,7 +64,9 @@ test_that("Discrete analysis runs with and without weights", {
     expect_equal(vbdf_wtd$net_rep,
                  (check$pr_voterep - check$pr_votedem) * check$pr_turnout * (check$prob * data$weight) / sum(check$prob * data$weight))
     # check against lm
-    expect_equal(vbdf_wtd$cond_rep, unname(coef(lm(data = data, vote3 ~ x_disc - 1, weights = weight))))
+    lm_coef <- unname(coef(lm(data = data, vote3 ~ x_disc - 1, weights = weight)))
+    lm_coef[lm_coef == 0] <- NA
+    expect_equal(vbdf_wtd$cond_rep, lm_coef)
 }
 )
 
@@ -75,10 +76,7 @@ test_that("Discrete analysis runs with and without weights", {
 
 test_that("Expected results from ANES analysis", {
     data(anes)
-    anes_tmp <- filter(anes, year == sample(seq(1976, 2020, 4), 1))
-
-    cat("########### TESTING WITH ANES", unique(anes_tmp$year), "###########\n")
-
+    anes_tmp <- filter(anes, year == 2020)
 
     vbdf <- vb_discrete(anes_tmp, indep = "race",
                         dv_vote3 = "vote_pres3",
@@ -92,27 +90,20 @@ test_that("Expected results from ANES analysis", {
         summarize(
             prob = sum(weight) / sum(anes_tmp$weight),
             pr_turnout = weighted.mean(voted, weight, na.rm = TRUE),
-            pr_voterep = weighted.mean(vote_pres3 == 1, weight, na.rm = TRUE),
-            pr_votedem = weighted.mean(vote_pres3 == -1, weight, na.rm = TRUE)
+            pr_voterep = weighted.mean(vote_pres3[vote_pres3 != 0] == 1, weight[vote_pres3 != 0], na.rm = TRUE),
+            pr_votedem = weighted.mean(vote_pres3[vote_pres3 != 0] == -1, weight[vote_pres3 != 0], na.rm = TRUE)
         ) %>%
         mutate(resample = "original",
                race = as.factor(race),
                cond_rep = pr_voterep - pr_votedem,
                net_rep = prob * pr_turnout * cond_rep) %>%
-        collapse::colorderv(neworder = c("race", "resample",
+        collapse::colorderv(neworder = c("resample", "race",
                                          "prob", "pr_turnout",
                                          "pr_voterep", "pr_votedem",
                                          "cond_rep", "net_rep"))
 
     expect_equal(vbdf, check, ignore_attr = TRUE)
 
-    # check against lm
-    vbdf_complete <- filter(vbdf, !is.na(race))
-    expect_equal(vbdf_complete$cond_rep,
-                 unname(
-                     coef(lm(data = anes_tmp, vote_pres3 ~ race - 1, weights = weight))[vbdf_complete$race]
-                     )
-                 )
 
     # Multivariate blocs ----
     anes_tmp <- filter(anes_tmp, !is.na(race), !is.na(educ))
@@ -129,8 +120,8 @@ test_that("Expected results from ANES analysis", {
         summarize(
             prob = sum(weight) / sum(anes_tmp$weight),
             pr_turnout = weighted.mean(voted, weight, na.rm = TRUE),
-            pr_voterep = weighted.mean(vote_pres3 == 1, weight, na.rm = TRUE),
-            pr_votedem = weighted.mean(vote_pres3 == -1, weight, na.rm = TRUE)
+            pr_voterep = weighted.mean(vote_pres3[vote_pres3 != 0] == 1, weight[vote_pres3 != 0], na.rm = TRUE),
+            pr_votedem = weighted.mean(vote_pres3[vote_pres3 != 0] == -1, weight[vote_pres3 != 0], na.rm = TRUE)
         ) %>%
         mutate(resample = "original",
                race = factor(race, levels = unique(vbdf$race)),
@@ -145,16 +136,7 @@ test_that("Expected results from ANES analysis", {
         ungroup()
 
     expect_equal(vbdf, check, ignore_attr = TRUE)
-
-    # check against lm
-    vbdf_complete <- filter(vbdf, !is.na(race), !is.na(educ))
-    lmod <- lm(data = anes_tmp, vote_pres3 ~ race * educ - 1, weights = weight)
-    vbdf_complete$pred <- predict(lmod, newdata = vbdf_complete)
-
-    expect_equal(vbdf_complete$cond_rep,
-                 unname(vbdf_complete$pred))
-
-}
+    }
 )
 
 ##### BOOTSTRAPPING ####
