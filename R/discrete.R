@@ -334,9 +334,10 @@ calc_vote <- function(data, indep, dv, weight){
 
                 collapse::ftransform(
                     data,
-                    voterep = as.numeric(!!rlang::sym(dv) ==  1),
-                    votedem = as.numeric(!!rlang::sym(dv) == -1)
+                    voterep = as.numeric(get(dv) ==  1),
+                    votedem = as.numeric(get(dv) == -1)
                 ),
+
                 indep),
 
             c("voterep", "votedem")

@@ -4,7 +4,12 @@
 \alias{vbdf}
 \title{Create a vbdf object}
 \usage{
-vbdf(data, bloc_var, var_type = c("discrete", "continuous"), tolerance)
+vbdf(
+  data,
+  bloc_var,
+  var_type = c("discrete", "continuous"),
+  tolerance = sqrt(.Machine$double.eps)
+)
 }
 \arguments{
 \item{data}{data.frame of voting-bloc results to convert to a \code{vbdf} object}

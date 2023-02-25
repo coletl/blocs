@@ -49,7 +49,7 @@ test_that("vb_plot runs for discrete difference summary", {
                weight = "weight", boot_iters = 10) %>%
         bind_rows(.id = "year") %>%
         vb_difference() %>%
-        vb_uncertainty()
+        vb_uncertainty(na.rm = TRUE)
 
     tags <-
         c("prob", "pr_turnout",
