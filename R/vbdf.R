@@ -112,7 +112,8 @@ check_vbdf <- function(x, tolerance = sqrt(.Machine$double.eps)){
 #' @export
 
 vbdf <-
-    function(data, bloc_var, var_type = c("discrete", "continuous"), tolerance){
+    function(data, bloc_var, var_type = c("discrete", "continuous"),
+             tolerance = sqrt(.Machine$double.eps)){
 
         var_type <- match.arg(var_type)
 
