@@ -2,9 +2,22 @@
 % Please edit documentation in R/uncertainty.R
 \name{vb_summary}
 \alias{vb_summary}
-\title{Uncertainty for a vbdf objects}
+\alias{vb_uncertainty}
+\title{Summarize uncertainty for a vbdf objects}
 \usage{
 vb_summary(
+  object,
+  type = c("discrete", "continuous", "binned"),
+  estimates = grep("prob|pr_turnout|pr_votedem|pr_voterep|cond_rep|net_rep",
+    names(object), value = TRUE),
+  na.rm = FALSE,
+  funcs = c("mean", "median", "low", "high"),
+  low_ci = 0.025,
+  high_ci = 0.975,
+  bin_col
+)
+
+vb_uncertainty(
   object,
   type = c("discrete", "continuous", "binned"),
   estimates = grep("prob|pr_turnout|pr_votedem|pr_voterep|cond_rep|net_rep",
@@ -43,5 +56,5 @@ A summary object with additional columns for each combination
   of \code{estimates} and \code{funcs}.
 }
 \description{
-Uncertainty for a vbdf objects
+Summarize uncertainty for a vbdf objects
 }
