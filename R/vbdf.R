@@ -28,7 +28,7 @@ new_vbdf <- function(x, bloc_var = character(),
 #' @param x object to check
 #' @param tol tolerance used when checking bounds of net Republican votes
 
-check_vbdf <- function(x, tol = sqrt(.Machine$double.eps)){
+check_vbdf <- function(x, tolerance = sqrt(.Machine$double.eps)){
 
     stopifnot(is.data.frame(x))
     stopifnot("bloc_var" %in% names(attributes((x))))
@@ -37,6 +37,8 @@ check_vbdf <- function(x, tol = sqrt(.Machine$double.eps)){
 
 
     stopifnot(rlang::has_name(x, get_bloc_var(x)))
+
+    tol <- tolerance
 
     if(
         isFALSE(
@@ -110,7 +112,7 @@ check_vbdf <- function(x, tol = sqrt(.Machine$double.eps)){
 #' @export
 
 vbdf <-
-    function(data, bloc_var, var_type = c("discrete", "continuous")){
+    function(data, bloc_var, var_type = c("discrete", "continuous"), tolerance){
 
         var_type <- match.arg(var_type)
 
@@ -121,7 +123,7 @@ vbdf <-
                 var_type = var_type
             )
 
-        check_vbdf(vbdf)
+        check_vbdf(vbdf, tolerance = tolerance)
 
         return(vbdf)
     }

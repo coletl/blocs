@@ -14,7 +14,8 @@ vb_summary(
   funcs = c("mean", "median", "low", "high"),
   low_ci = 0.025,
   high_ci = 0.975,
-  bin_col
+  bin_col,
+  tolerance = sqrt(.Machine$double.eps)
 )
 
 vb_uncertainty(
@@ -26,7 +27,8 @@ vb_uncertainty(
   funcs = c("mean", "median", "low", "high"),
   low_ci = 0.025,
   high_ci = 0.975,
-  bin_col
+  bin_col,
+  tolerance = sqrt(.Machine$double.eps)
 )
 }
 \arguments{
@@ -56,5 +58,6 @@ A summary object with additional columns for each combination
   of \code{estimates} and \code{funcs}.
 }
 \description{
-Summarize uncertainty for a vbdf objects
+Summarize uncertainty for a vbdf objects. Analysis must have run with bootstrap iterations.
+\code{vb_uncertainty} is just an alias for \code{vb_summary}.
 }

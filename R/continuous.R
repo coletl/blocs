@@ -11,6 +11,7 @@
 #'   [estimate_density].
 #' @param n_points   scalar, number of points at which to estimate density. See
 #'   [estimate_density].
+#' @param tolerance tolerance parameter for checking the range of probability estimates.
 #' @param ...        further arguments to pass to \link[ks]{kde} for density estimation.
 #'
 #' @return a \code{vbdf} data.frame with columns for the resample, bloc variable,
@@ -25,7 +26,8 @@ vb_continuous <-
              data_density = data, data_turnout = data, data_vote = data,
              indep, dv_vote3, dv_turnout,
              weight = NULL, min_val = NULL, max_val = NULL, n_points = 100,
-             boot_iters = FALSE, verbose = FALSE, ...){
+             boot_iters = FALSE, verbose = FALSE, tolerance = sqrt(.Machine$double.eps),
+             ...){
 
         if(dplyr::is_grouped_df(data_density)){
             stop("Density estimation does not permit grouped data frames.\n
@@ -247,7 +249,7 @@ vb_continuous <-
             collapse::roworderv(cols = c("resample", indep))
 
         out <-
-            vbdf(results,
+            vbdf(results, tolerance = tolerance,
                  bloc_var = indep, var_type  = "continuous")
 
         return(out)

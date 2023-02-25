@@ -8,7 +8,8 @@ vb_difference(
   vbdf,
   estimates = grep("prob|pr_turnout|pr_votedem|pr_voterep|cond_rep|net_rep",
     names(vbdf), value = TRUE),
-  sort_col = "year"
+  sort_col = "year",
+  tolerance = sqrt(.Machine$double.eps)
 )
 }
 \arguments{

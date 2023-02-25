@@ -74,9 +74,9 @@ vb_summary <-
              na.rm = FALSE,
              funcs = c("mean", "median", "low", "high"),
              low_ci = 0.025, high_ci = 0.975,
-             bin_col){
+             bin_col, tolerance = sqrt(.Machine$double.eps)){
 
-        check_vbdf(object)
+        check_vbdf(object, tolerance = tolerance)
         if(dplyr::is.grouped_df(object)) stop("Summarizing uncertainty by group is not supported yet. Please use split-apply-combine.")
 
         if(identical(type, c("discrete", "continuous", "binned")))

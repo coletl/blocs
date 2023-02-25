@@ -18,6 +18,7 @@ vb_continuous(
   n_points = 100,
   boot_iters = FALSE,
   verbose = FALSE,
+  tolerance = sqrt(.Machine$double.eps),
   ...
 )
 }
@@ -39,8 +40,8 @@ columns named by \code{dv_vote3}, \code{indep}, and \code{weight}.}
 discrete voting blocs.}
 
 \item{dv_vote3}{string, column name of the dependent variable in \code{data_vote}, coded as
-follows: -1 for Democrat vote choice, 0 for no or third-party vote, 1 for
-Republican vote choice.}
+follows: -1 for Democrat vote choice, 0 for third-party vote, 1 for
+Republican vote choice, and NA for no vote.}
 
 \item{dv_turnout}{string, column name of the dependent variable flagging
 voter turnout in \code{data_turnout}. That column must be coded 0 =  no vote, 1 = voted.}
@@ -61,6 +62,8 @@ estimation. The default \code{FALSE} is equivalent to 0 and does not estimate
 uncertainty.}
 
 \item{verbose}{logical, whether to print iteration number.}
+
+\item{tolerance}{tolerance parameter for checking the range of probability estimates.}
 
 \item{...}{further arguments to pass to \link[ks]{kde} for density estimation.}
 }
