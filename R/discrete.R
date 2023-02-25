@@ -61,7 +61,7 @@ vb_discrete <-
             stop(sprintf("%s not found in data_vote", dv_vote3))
 
         if( check_discrete & dplyr::n_distinct(collapse::get_vars(data_density, indep)) > 50)
-            stop("More than 25 unique values detected in indep. \nIf you are sure you don't want vb_continuous(), set check_discrete = FALSE.")
+            stop("More than 50 unique values detected in indep. \nIf you are sure you don't want vb_continuous(), set check_discrete = FALSE.")
 
         # Start with NULL weights = 1, but grab the col if present
         weight_density <- rep(1L, nrow(data_density))
@@ -71,15 +71,15 @@ vb_discrete <-
 
         if(!is.null(weight)) {
             if(rlang::has_name(data_density, weight))
-                weight_density <- data_density[[weight]]
+                weight_density <- c(data_density[[weight]])
             else stop(sprintf("%s not found in data_density", weight))
 
             if(rlang::has_name(data_turnout, weight))
-                weight_turnout <- data_turnout[[weight]]
+                weight_turnout <- c(data_turnout[[weight]])
             else stop(sprintf("%s not found in data_turnout", weight))
 
             if(rlang::has_name(data_vote, weight))
-                weight_vote    <- data_vote[[weight]]
+                weight_vote    <- c(data_vote[[weight]])
             else stop(sprintf("%s not found in data_vote", weight))
 
             # Check for negative weights
