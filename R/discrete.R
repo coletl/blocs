@@ -15,8 +15,8 @@
 #' @param indep      string, column name of the independent variable defining
 #'   discrete voting blocs.
 #' @param dv_vote3        string, column name of the dependent variable in \code{data_vote}, coded as
-#'   follows: -1 for Democrat vote choice, 0 for no or third-party vote, 1 for
-#'   Republican vote choice.
+#'   follows: -1 for Democrat vote choice, 0 for third-party vote, 1 for
+#'   Republican vote choice, and NA for no vote.
 #' @param dv_turnout     string, column name of the dependent variable flagging
 #'   voter turnout in \code{data_turnout}. That column must be coded 0 =  no vote, 1 = voted.
 #' @param weight     optional string naming the column of sample weights.
@@ -51,12 +51,12 @@ vb_discrete <-
             stop(sprintf("%s not found in data_density", indep))
 
         if(!all(rlang::has_name(data_turnout, indep)))
-            stop(sprintf("%s not found in data_turnout\n", indep))
+            stop(sprintf("%s not found in data_turnout", indep))
         if(!rlang::has_name(data_turnout, dv_turnout))
             stop(sprintf("%s not found in data_turnout", dv_turnout))
 
         if(!all(rlang::has_name(data_vote, indep)))
-            stop(sprintf("%s not found in data_vote\n", indep))
+            stop(sprintf("%s not found in data_vote", indep))
         if(!rlang::has_name(data_vote, dv_vote3))
             stop(sprintf("%s not found in data_vote", dv_vote3))
 
@@ -192,7 +192,7 @@ vb_discrete <-
                   FUN = function(ind)
                       calc_vote(dplyr::slice(data_vote, ind),
                                 indep = indep,
-                                dv3 = dv_vote3, weight = weight_vote)
+                                dv = dv_vote3, weight = weight_vote)
             ) %>%
             dplyr::bind_rows(.id = "resample")
 
@@ -235,7 +235,8 @@ vb_discrete <-
         results <-
             collapse::fmutate(results,
                               resample = gsub("-0+", "-", resample),
-                              net_rep = prob * pr_turnout * cond_rep) %>%
+                              net_rep = prob * pr_turnout * cond_rep
+                              ) %>%
             collapse::colorderv(neworder = c("resample", indep,
                                              "prob", "pr_turnout",
                                              "pr_voterep", "pr_votedem",
@@ -324,10 +325,7 @@ calc_turnout <- function(data, indep, dv, weight){
     return(out)
 }
 
-calc_vote <- function(data, indep, dv3, weight){
-
-    # Index to remove non-voters
-    voter_ind <- which(data[[dv3]] != 0)
+calc_vote <- function(data, indep, dv, weight){
 
     cgdf <-
         collapse::get_vars(
@@ -335,17 +333,19 @@ calc_vote <- function(data, indep, dv3, weight){
             collapse::fgroup_by(
 
                 collapse::ftransform(
-                    collapse::fsubset(data, voter_ind),
-
-                    pr_voterep = as.numeric(get({{dv3}}) ==  1),
-                    pr_votedem = as.numeric(get({{dv3}}) == -1)
+                    data,
+                    voterep = as.numeric(!!rlang::sym(dv) ==  1),
+                    votedem = as.numeric(!!rlang::sym(dv) == -1)
                 ),
                 indep),
 
-            c("pr_voterep", "pr_votedem")
+            c("voterep", "votedem")
         )
 
-    out <- collapse::fmean(cgdf, w = weight[voter_ind])
+    out <- collapse::fmean(cgdf, w = weight)
+    names(out)[names(out) == "voterep"] <- "pr_voterep"
+    names(out)[names(out) == "votedem"] <- "pr_votedem"
+
     out$cond_rep <- out$pr_voterep - out$pr_votedem
 
     return(out)

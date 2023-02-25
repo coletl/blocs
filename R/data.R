@@ -17,7 +17,7 @@
 #'     \item{vote_pres}{respondent's presidential vote}
 #'     \item{vote_pres_dem}{flag indicating Democratic presidential vote choice}
 #'     \item{vote_pres_rep}{flag indicating Republican presidential vote choice}
-#'     \item{vote_pres3}{Three-valued voting behavior DV coded as follows: -1 for Democrat vote choice, 0 for no or third-party vote, 1 for Republican vote choice.
+#'     \item{vote_pres3}{Three-valued voting behavior DV coded as follows: -1 for Democrat vote choice, 0 for third-party vote, 1 for Republican vote choice, and NA for no vote.
 #'     }
 #' }
 #'

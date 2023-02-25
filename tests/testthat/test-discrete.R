@@ -1,3 +1,4 @@
+library(testthat)
 library(dplyr)
 
 ##### WEIGHTS ####
@@ -23,9 +24,9 @@ test_that("Discrete analysis runs with and without weights", {
         data.frame(
             prob = rep(0.25, 4),
             pr_turnout = c(0, 1, 1, 1),
-            pr_votedem = c(NA, 0, 1, 1),
-            pr_voterep = c(NA, 1, 0, 0),
-            net_rep = c(NA, 0.25, -0.25, -0.25)
+            pr_votedem = c(0, 0, 1, 1),
+            pr_voterep = c(0, 1, 0, 0),
+            net_rep = c(0, 0.25, -0.25, -0.25)
         )
 
     expect_equal(vbdf$prob,       check$prob)
@@ -35,8 +36,7 @@ test_that("Discrete analysis runs with and without weights", {
     expect_equal(vbdf$net_rep,    check$net_rep)
     # check against lm
     lm_coef <- unname(coef(lm(data = data, vote3 ~ x_disc - 1)))
-    lm_coef[lm_coef == 0] <- NA
-    expect_equal(vbdf$cond_rep, lm_out)
+    expect_equal(vbdf$cond_rep, lm_coef)
 
 
     expect_error(
@@ -65,7 +65,6 @@ test_that("Discrete analysis runs with and without weights", {
                  (check$pr_voterep - check$pr_votedem) * check$pr_turnout * (check$prob * data$weight) / sum(check$prob * data$weight))
     # check against lm
     lm_coef <- unname(coef(lm(data = data, vote3 ~ x_disc - 1, weights = weight)))
-    lm_coef[lm_coef == 0] <- NA
     expect_equal(vbdf_wtd$cond_rep, lm_coef)
 }
 )
@@ -75,8 +74,12 @@ test_that("Discrete analysis runs with and without weights", {
 ##### ANES ####
 
 test_that("Expected results from ANES analysis", {
+
     data(anes)
-    anes_tmp <- filter(anes, year == 2020)
+
+    anes_tmp <-
+        filter(anes, year == 2020) %>%
+        mutate(vote_pres3 = ifelse(voted == 0, NA, vote_pres3))
 
     vbdf <- vb_discrete(anes_tmp, indep = "race",
                         dv_vote3 = "vote_pres3",
@@ -90,8 +93,8 @@ test_that("Expected results from ANES analysis", {
         summarize(
             prob = sum(weight) / sum(anes_tmp$weight),
             pr_turnout = weighted.mean(voted, weight, na.rm = TRUE),
-            pr_voterep = weighted.mean(vote_pres3[vote_pres3 != 0] == 1, weight[vote_pres3 != 0], na.rm = TRUE),
-            pr_votedem = weighted.mean(vote_pres3[vote_pres3 != 0] == -1, weight[vote_pres3 != 0], na.rm = TRUE)
+            pr_voterep = weighted.mean(vote_pres3 == 1, weight, na.rm = TRUE),
+            pr_votedem = weighted.mean(vote_pres3 == -1, weight, na.rm = TRUE)
         ) %>%
         mutate(resample = "original",
                race = as.factor(race),
@@ -104,6 +107,18 @@ test_that("Expected results from ANES analysis", {
 
     expect_equal(vbdf, check, ignore_attr = TRUE)
 
+    # check against lm
+    vbdf_complete <- filter(vbdf, !is.na(race))
+    lmod <- lm(data = anes_tmp, vote_pres3 ~ race, weights = weight)
+    vbdf_complete$pred <- predict(lmod, newdata = vbdf_complete)
+    expect_equal(vbdf_complete$cond_rep,
+                 unname(vbdf_complete$pred))
+
+    expect_equal(vbdf_complete$cond_rep,
+                 unname(
+                     coef(lm(data = anes_tmp, vote_pres3 ~ race - 1, weights = weight))
+                     )
+                 )
 
     # Multivariate blocs ----
     anes_tmp <- filter(anes_tmp, !is.na(race), !is.na(educ))
@@ -120,8 +135,8 @@ test_that("Expected results from ANES analysis", {
         summarize(
             prob = sum(weight) / sum(anes_tmp$weight),
             pr_turnout = weighted.mean(voted, weight, na.rm = TRUE),
-            pr_voterep = weighted.mean(vote_pres3[vote_pres3 != 0] == 1, weight[vote_pres3 != 0], na.rm = TRUE),
-            pr_votedem = weighted.mean(vote_pres3[vote_pres3 != 0] == -1, weight[vote_pres3 != 0], na.rm = TRUE)
+            pr_voterep = weighted.mean(vote_pres3 == 1, weight, na.rm = TRUE),
+            pr_votedem = weighted.mean(vote_pres3 == -1, weight, na.rm = TRUE)
         ) %>%
         mutate(resample = "original",
                race = factor(race, levels = unique(vbdf$race)),
@@ -136,7 +151,16 @@ test_that("Expected results from ANES analysis", {
         ungroup()
 
     expect_equal(vbdf, check, ignore_attr = TRUE)
-    }
+
+    # check against lm
+    vbdf_complete <- filter(vbdf, !is.na(race), !is.na(educ))
+    lmod <- lm(data = anes_tmp, vote_pres3 ~ race * educ - 1, weights = weight)
+    vbdf_complete$pred <- predict(lmod, newdata = vbdf_complete)
+
+    expect_equal(vbdf_complete$cond_rep,
+                 unname(vbdf_complete$pred))
+
+}
 )
 
 ##### BOOTSTRAPPING ####

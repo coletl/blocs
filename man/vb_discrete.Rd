@@ -36,8 +36,8 @@ columns named by \code{dv_vote3}, \code{indep}, and \code{weight}.}
 discrete voting blocs.}
 
 \item{dv_vote3}{string, column name of the dependent variable in \code{data_vote}, coded as
-follows: -1 for Democrat vote choice, 0 for no or third-party vote, 1 for
-Republican vote choice.}
+follows: -1 for Democrat vote choice, 0 for third-party vote, 1 for
+Republican vote choice, and NA for no vote.}
 
 \item{dv_turnout}{string, column name of the dependent variable flagging
 voter turnout in \code{data_turnout}. That column must be coded 0 =  no vote, 1 = voted.}

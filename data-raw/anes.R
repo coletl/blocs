@@ -80,7 +80,8 @@ anes <-
 
            vote_pres3    = case_when(vote_pres == "dem" ~ -1L,
                                      vote_pres == "rep" ~  1L,
-                                     turnout   != "voted" ~  0L)
+                                     vote_pres == "third" ~ 0L,
+                                     turnout   != "voted" ~  NA_integer_)
     )
 
 anes <- select(anes, -turnout)
