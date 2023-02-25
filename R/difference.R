@@ -8,6 +8,7 @@
 #'   which to compute differences.
 #' @param sort_col  character vector naming the column(s) in \code{vbdf} to use
 #'   for sorting before calling \link[base]{diff}.
+#' @param tolerance tolerance used when checking range of probability estimates
 #'
 #' @return A \code{vbdf} object, plus two types of columns:
 #' for each column named in \code{estimates}, a column named \code{diff_*} containing the

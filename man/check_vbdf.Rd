@@ -9,7 +9,7 @@ check_vbdf(x, tolerance = sqrt(.Machine$double.eps))
 \arguments{
 \item{x}{object to check}
 
-\item{tol}{tolerance used when checking bounds of net Republican votes}
+\item{tolerance}{tolerance used when checking range of probability estimates}
 }
 \description{
 Validator for class vbdf

@@ -17,6 +17,8 @@ vbdf(
 \item{bloc_var}{string, the name of the variable that defines the voting blocs}
 
 \item{var_type}{string, the type of variable, discrete or continuous}
+
+\item{tolerance}{tolerance used when checking range of probability estimates}
 }
 \value{
 A \code{vbdf} object.

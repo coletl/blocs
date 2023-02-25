@@ -64,6 +64,7 @@ new_vbsum <- function(x, bloc_var, var_type, summary_type, resamples){
 #' @param bin_col character vector naming the column(s) that define the bins. Used only when  \code{type} is \code{"binned"}.
 #' @return A summary object with additional columns for each combination
 #'   of \code{estimates} and \code{funcs}.
+#' @param tolerance tolerance used when checking range of probability estimates
 #'
 #' @export vb_summary
 

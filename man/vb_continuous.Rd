@@ -63,7 +63,7 @@ uncertainty.}
 
 \item{verbose}{logical, whether to print iteration number.}
 
-\item{tolerance}{tolerance parameter for checking the range of probability estimates.}
+\item{tolerance}{tolerance used when checking range of probability estimates}
 
 \item{...}{further arguments to pass to \link[ks]{kde} for density estimation.}
 }

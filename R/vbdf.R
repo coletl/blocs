@@ -26,7 +26,7 @@ new_vbdf <- function(x, bloc_var = character(),
 #' Validator for class vbdf
 #'
 #' @param x object to check
-#' @param tol tolerance used when checking bounds of net Republican votes
+#' @param tolerance tolerance used when checking range of probability estimates
 
 check_vbdf <- function(x, tolerance = sqrt(.Machine$double.eps)){
 
@@ -106,6 +106,7 @@ check_vbdf <- function(x, tolerance = sqrt(.Machine$double.eps)){
 #' @param data data.frame of voting-bloc results to convert to a \code{vbdf} object
 #' @param bloc_var string, the name of the variable that defines the voting blocs
 #' @param var_type string, the type of variable, discrete or continuous
+#' @param tolerance tolerance used when checking range of probability estimates
 #'
 #' @return A \code{vbdf} object.
 #'

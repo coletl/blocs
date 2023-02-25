@@ -11,7 +11,7 @@
 #'   [estimate_density].
 #' @param n_points   scalar, number of points at which to estimate density. See
 #'   [estimate_density].
-#' @param tolerance tolerance parameter for checking the range of probability estimates.
+#' @param tolerance tolerance used when checking range of probability estimates
 #' @param ...        further arguments to pass to \link[ks]{kde} for density estimation.
 #'
 #' @return a \code{vbdf} data.frame with columns for the resample, bloc variable,

@@ -52,6 +52,8 @@ should accept a numeric vector input and return a scalar.}
 \item{high_ci}{numeric. If you include the string \code{"high"} in \code{funcs}, then use this argument to control the upper bound of the confidence interval.}
 
 \item{bin_col}{character vector naming the column(s) that define the bins. Used only when  \code{type} is \code{"binned"}.}
+
+\item{tolerance}{tolerance used when checking range of probability estimates}
 }
 \value{
 A summary object with additional columns for each combination

@@ -20,6 +20,8 @@ which to compute differences.}
 
 \item{sort_col}{character vector naming the column(s) in \code{vbdf} to use
 for sorting before calling \link[base]{diff}.}
+
+\item{tolerance}{tolerance used when checking range of probability estimates}
 }
 \value{
 A \code{vbdf} object, plus two types of columns:
