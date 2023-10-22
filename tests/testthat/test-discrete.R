@@ -147,8 +147,8 @@ test_that("Expected results from ANES analysis", {
                                          "prob", "pr_turnout",
                                          "pr_voterep", "pr_votedem",
                                          "cond_rep", "net_rep")) %>%
-        collapse::roworder(resample, race, educ) %>%
-        ungroup()
+        ungroup() %>%
+        collapse::roworder(resample, race, educ)
 
     expect_equal(vbdf, check, ignore_attr = TRUE)
 
